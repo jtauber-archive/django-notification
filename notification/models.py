@@ -43,11 +43,12 @@ class NoticeSetting(models.Model):
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
 
-def should_send(notice, medium):
+def should_send(notice, medium, default):
     try:
         return NoticeSetting.objects.get(user=notice.user, notice_type=notice.notice_type, medium=medium).send
     except NoticeSetting.DoesNotExist:
-        return False
+        NoticeSetting(user=notice.user, notice_type=notice.notice_type, medium=medium, send=default).save()
+        return default
 
 
 class Notice(models.Model):
@@ -77,12 +78,11 @@ def create_notice_type(label, display, description):
     if created:
         print "Created %s NoticeType" % label
 
-
 def create(user, notice_type_label, message):
     notice_type = NoticeType.objects.get(label=notice_type_label)
     notice = Notice(user=user, message=message, notice_type=notice_type)
     notice.save()
-    if should_send(notice, "1") and user.email: # Email
+    if should_send(notice, "1", default=True) and user.email: # Email
         subject = "%s Notification From Pinax" % notice_type.display # @@@
         message = message # @@@
         send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
