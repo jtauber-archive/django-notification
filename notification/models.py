@@ -57,6 +57,7 @@ class Notice(models.Model):
     message = models.TextField()
     notice_type = models.ForeignKey(NoticeType)
     added = models.DateTimeField(default=datetime.datetime.now)
+    unseen = models.BooleanField(default=True)
     archived = models.BooleanField(default=False)
     
     def __unicode__(self):
@@ -66,11 +67,21 @@ class Notice(models.Model):
         self.archived = True
         self.save()
     
+    def show_as_unseen(self):
+        """
+        returns value of self.unseen but also changes it to false
+        """
+        unseen = self.unseen
+        if unseen:
+            self.unseen = False
+            self.save()
+        return unseen
+    
     class Meta:
         ordering = ["-added"]
     
     class Admin:
-        list_display = ('message', 'user', 'notice_type', 'added', 'archived')
+        list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
 
 
 def create_notice_type(label, display, description):
@@ -95,3 +106,11 @@ def notices_for(user, archived=False):
     If archived is True, it includes archived Notices.
     """
     return Notice.objects.filter(user=user)
+
+
+def unseen_count_for(user):
+    """
+    returns the number of unseen notices for the given user but does not
+    mark them seen
+    """
+    return Notice.objects.filter(user=user, unseen=True).count()
