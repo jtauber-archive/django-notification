@@ -34,7 +34,7 @@ class Notice(models.Model):
         ordering = ["-added"]
     
     class Admin:
-        pass
+        list_display = ('message', 'user', 'notice_type', 'added', 'archived')
 
 
 def create_notice_type(label):
