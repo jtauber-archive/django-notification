@@ -6,13 +6,15 @@ from django.contrib.auth.models import User
 
 class NoticeType(models.Model):
     
-    label = models.CharField(max_length=50)
+    label = models.CharField(max_length=20)
+    display = models.CharField(max_length=50)
+    description = models.CharField(max_length=100)
     
     def __unicode__(self):
         return self.label
     
     class Admin:
-        pass
+        list_display = ('label', 'display', 'description')
 
 
 class Notice(models.Model):
@@ -37,8 +39,8 @@ class Notice(models.Model):
         list_display = ('message', 'user', 'notice_type', 'added', 'archived')
 
 
-def create_notice_type(label):
-    notice_type, created = NoticeType.objects.get_or_create(label=label)
+def create_notice_type(label, display, description):
+    notice_type, created = NoticeType.objects.get_or_create(label=label, display=display, description=description)
     if created:
         print "Created %s NoticeType" % label
 
