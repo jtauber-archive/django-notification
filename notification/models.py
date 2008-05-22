@@ -21,6 +21,17 @@ class Notice(models.Model):
     message = models.TextField()
     notice_type = models.ForeignKey(NoticeType)
     added = models.DateTimeField(default=datetime.datetime.now)
+    archived = models.BooleanField(default=False)
+    
+    def __unicode__(self):
+        return self.message
+    
+    def archive(self):
+        self.archived = True
+        self.save()
+    
+    class Meta:
+        ordering = ["-added"]
     
     class Admin:
         pass
@@ -37,4 +48,11 @@ def create(user, notice_type_label, message):
     notice = Notice(user=user, message=message, notice_type=notice_type)
     notice.save()
     return notice
-    
+
+
+def notices_for(user, archived=False):
+    """
+    Returns all the Notices for a User.
+    If archived is True, it includes archived Notices.
+    """
+    return Notice.objects.filter(user=user)
