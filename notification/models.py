@@ -68,7 +68,7 @@ class Notice(models.Model):
         self.archived = True
         self.save()
     
-    def show_as_unseen(self):
+    def is_unseen(self):
         """
         returns value of self.unseen but also changes it to false
         """
