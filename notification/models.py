@@ -122,8 +122,17 @@ def create(user, notice_type_label, message):
     notice.save()
     if should_send(notice, "1", default=True) and user.email: # Email
         subject = "%s Notification From Pinax" % notice_type.display # @@@
-        message = message # @@@
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+        message_body = """
+You have received the following notice from Pinax:
+
+%s
+
+To see other notices or change how you receive notifications,
+please go to http://pinax.hotcluboffrance.com/notices/
+
+If you have any issues, please don't hesitate to contact jtauber@jtauber.com
+""" % message # @@@ put in template
+        send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, [user.email])
     return notice
 
 
