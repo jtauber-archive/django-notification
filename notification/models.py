@@ -70,7 +70,10 @@ class Notice(models.Model):
     
     def is_unseen(self):
         """
-        returns value of self.unseen but also changes it to false
+        returns value of self.unseen but also changes it to false.
+        
+        Use this in a template to mark an unseen notice differently the first
+        time it is shown.
         """
         unseen = self.unseen
         if unseen:
