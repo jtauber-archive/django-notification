@@ -5,32 +5,29 @@ from django.contrib.auth.decorators import login_required, permission_required
 
 from notification.models import *
 
+@login_required
 def notices(request):
     notice_types = NoticeType.objects.all()
-    if request.user.is_authenticated():
-        notices = notices_for(request.user)
-        settings_table = []
-        for notice_type in NoticeType.objects.all():
-            settings_row = []
-            for medium_id, medium_display in NOTICE_MEDIA:
-                form_label = "%s_%s" % (notice_type.label, medium_id)
-                setting, created = NoticeSetting.objects.get_or_create(user=request.user, notice_type=notice_type, medium=medium_id)
-                if request.method == "POST":
-                    if request.POST.get(form_label) == "on":
-                        setting.send = True
-                    else:
-                        setting.send = False
-                    setting.save()
-                settings_row.append((form_label, setting.send))
-            settings_table.append({"notice_type": notice_type, "cells": settings_row})
-        
-        notice_settings = {
-            "column_headers": [medium_display for medium_id, medium_display in NOTICE_MEDIA],
-            "rows": settings_table,
-        }
-    else:
-        notices = None
-        notice_settings = None
+    notices = notices_for(request.user)
+    settings_table = []
+    for notice_type in NoticeType.objects.all():
+        settings_row = []
+        for medium_id, medium_display in NOTICE_MEDIA:
+            form_label = "%s_%s" % (notice_type.label, medium_id)
+            setting, created = NoticeSetting.objects.get_or_create(user=request.user, notice_type=notice_type, medium=medium_id)
+            if request.method == "POST":
+                if request.POST.get(form_label) == "on":
+                    setting.send = True
+                else:
+                    setting.send = False
+                setting.save()
+            settings_row.append((form_label, setting.send))
+        settings_table.append({"notice_type": notice_type, "cells": settings_row})
+    
+    notice_settings = {
+        "column_headers": [medium_display for medium_id, medium_display in NOTICE_MEDIA],
+        "rows": settings_table,
+    }
     
     return render_to_response("notification/notices.html", {
         "notices": notices,
