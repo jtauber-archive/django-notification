@@ -13,11 +13,9 @@ def notices(request):
         for notice_type in NoticeType.objects.all():
             settings_row = []
             for medium_id, medium_display in NOTICE_MEDIA:
-                try:
-                    setting = NoticeSetting.objects.get(user=request.user, notice_type=notice_type, medium=medium_id).send
-                except NoticeSetting.DoesNotExist:
-                    setting = False # @@@ this repeat's what's done in model. DRY!
-                settings_row.append(("%s_%s" % (notice_type.label, medium_id), setting))
+                form_label = "%s_%s" % (notice_type.label, medium_id)
+                setting, created = NoticeSetting.objects.get_or_create(user=request.user, notice_type=notice_type, medium=medium_id)
+                settings_row.append((form_label, setting.send))
             settings_table.append({"notice_type": notice_type, "cells": settings_row})
         
         notice_settings = {
