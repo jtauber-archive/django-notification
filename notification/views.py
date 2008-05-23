@@ -9,11 +9,26 @@ def notices(request):
     notice_types = NoticeType.objects.all()
     if request.user.is_authenticated():
         notices = notices_for(request.user)
+        settings_table = []
+        for notice_type in NoticeType.objects.all():
+            settings_row = []
+            for medium_id, medium_display in NOTICE_MEDIA:
+                setting = NoticeSetting.objects.get(user=request.user, notice_type=notice_type, medium=medium_id).send
+                settings_row.append(("%s_%s" % (notice_type.label, medium_id), setting))
+            settings_table.append({"notice_type": notice_type, "cells": settings_row})
+        
+        notice_settings = {
+            "column_headers": [medium_display for medium_id, medium_display in NOTICE_MEDIA],
+            "rows": settings_table,
+        }
     else:
         notices = None
+        notice_settings = None
+    
     return render_to_response("notification/notices.html", {
         "notices": notices,
         "notice_types": notice_types,
+        "notice_settings": notice_settings,
     }, context_instance=RequestContext(request))
 
 @login_required
