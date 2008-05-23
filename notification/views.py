@@ -15,6 +15,12 @@ def notices(request):
             for medium_id, medium_display in NOTICE_MEDIA:
                 form_label = "%s_%s" % (notice_type.label, medium_id)
                 setting, created = NoticeSetting.objects.get_or_create(user=request.user, notice_type=notice_type, medium=medium_id)
+                if request.method == "POST":
+                    if request.POST.get(form_label) == "on":
+                        setting.send = True
+                    else:
+                        setting.send = False
+                    setting.save()
                 settings_row.append((form_label, setting.send))
             settings_table.append({"notice_type": notice_type, "cells": settings_row})
         
