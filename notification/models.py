@@ -94,8 +94,20 @@ def create_notice_type(label, display, description):
     
     This is intended to be used by other apps as a post_syncdb manangement step.
     """
-    notice_type, created = NoticeType.objects.get_or_create(label=label, display=display, description=description)
-    if created:
+    try:
+        notice_type = NoticeType.objects.get(label=label)
+        updated = False
+        if display != notice_type.display:
+            notice_type.display = display
+            updated = True
+        if description != notice_type.description:
+            notice_type.description = description
+            updated = True
+        if updated:
+            notice_type.save()
+            print "Updated %s NoticeType" % label
+    except NoticeType.DoesNotExist:
+        NoticeType(label=label, display=display, description=description).save()
         print "Created %s NoticeType" % label
 
 
