@@ -111,13 +111,22 @@ def create_notice_type(label, display, description):
         print "Created %s NoticeType" % label
 
 
-def create(user, notice_type_label, message):
+def encode_object(obj):
+    return "{%s.%s.%s}" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
+
+
+def encode_message(message_template, *objects):
+    return message_template % [encode_object(obj) for obj in objects]
+
+
+def create(user, notice_type_label, message_template, object_list=[]):
     """
     create a new notice.
     
     This is intended to be how other apps create new notices.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
+    message = encode_message(message_template, *object_list)
     notice = Notice(user=user, message=message, notice_type=notice_type)
     notice.save()
     if should_send(notice, "1", default=True) and user.email: # Email
