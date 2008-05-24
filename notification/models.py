@@ -3,6 +3,7 @@ import datetime
 from django.db import models
 from django.conf import settings
 from django.db.models import Q
+from django.db.models import get_model
 
 from django.contrib.auth.models import User
 
@@ -121,13 +122,49 @@ def encode_object(obj):
 def encode_message(message_template, *objects):
     return message_template % tuple(encode_object(obj) for obj in objects)
 
+def decode_object(ref):
+    app, name, pk = ref.split(".")
+    return get_model(app, name).objects.get(pk=pk)
+
+class FormatException(Exception):
+    pass
+
+def decode_message(message, decoder):
+    out = []
+    in_field = False
+    prev = 0
+    for index, ch in enumerate(message):
+        if not in_field:
+            if ch == '{':
+                in_field = True
+                if prev != index:
+                    out.append(message[prev:index])
+                prev = index
+            elif ch == '}':
+                raise FormatException("unmatched }")
+        elif in_field:
+            if ch == '{':
+                raise FormatException("{ inside {}")
+            elif ch == '}':
+                in_field = False
+                out.append(decoder(message[prev+1:index]))
+                prev = index + 1
+    if in_field:
+        raise FormatException("unmatched {")
+    if prev <= index:
+        out.append(message[prev:index+1])
+    return "".join(out)
 
 def message_to_text(message):
-    return message # @@@
-
+    def decoder(ref):
+        return unicode(decode_object(ref))
+    return decode_message(message, decoder)
 
 def message_to_html(message):
-    return message # @@@
+    def decoder(ref):
+        obj = decode_object(ref)
+        return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj))
+    return decode_message(message, decoder)
 
 
 def create(user, notice_type_label, message_template, object_list=[]):
