@@ -81,6 +81,9 @@ class Notice(models.Model):
             self.save()
         return unseen
     
+    def html_message(self):
+        return message_to_html(self.message)
+    
     class Meta:
         ordering = ["-added"]
     
@@ -116,7 +119,15 @@ def encode_object(obj):
 
 
 def encode_message(message_template, *objects):
-    return message_template % [encode_object(obj) for obj in objects]
+    return message_template % tuple(encode_object(obj) for obj in objects)
+
+
+def message_to_text(message):
+    return message # @@@
+
+
+def message_to_html(message):
+    return message # @@@
 
 
 def create(user, notice_type_label, message_template, object_list=[]):
@@ -140,7 +151,7 @@ To see other notices or change how you receive notifications,
 please go to http://pinax.hotcluboffrance.com/notices/
 
 If you have any issues, please don't hesitate to contact jtauber@jtauber.com
-""" % message # @@@ put in template
+""" % message_to_text(message)
         send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, [user.email])
     return notice
 
