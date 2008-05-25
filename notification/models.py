@@ -45,11 +45,11 @@ class NoticeSetting(models.Model):
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
 
-def should_send(notice, medium, default):
+def should_send(user, notice_type, medium, default):
     try:
-        return NoticeSetting.objects.get(user=notice.user, notice_type=notice.notice_type, medium=medium).send
+        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium).send
     except NoticeSetting.DoesNotExist:
-        NoticeSetting(user=notice.user, notice_type=notice.notice_type, medium=medium, send=default).save()
+        NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default).save()
         return default
 
 
@@ -167,7 +167,7 @@ def message_to_html(message):
     return decode_message(message, decoder)
 
 
-def create(user, notice_type_label, message_template, object_list=[]):
+def send(users, notice_type_label, message_template, object_list=[], issue_notice=True):
     """
     create a new notice.
     
@@ -175,11 +175,10 @@ def create(user, notice_type_label, message_template, object_list=[]):
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
     message = encode_message(message_template, *object_list)
-    notice = Notice(user=user, message=message, notice_type=notice_type)
-    notice.save()
-    if should_send(notice, "1", default=True) and user.email: # Email
-        subject = "%s Notification From Pinax" % notice_type.display # @@@
-        message_body = """
+    recipients = []
+    
+    subject = "%s Notification From Pinax" % notice_type.display # @@@
+    message_body = """
 You have received the following notice from Pinax:
 
 %s
@@ -189,8 +188,14 @@ please go to http://pinax.hotcluboffrance.com/notices/
 
 If you have any issues, please don't hesitate to contact jtauber@jtauber.com
 """ % message_to_text(message)
-        send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, [user.email])
-    return notice
+    
+    for user in users:
+        if issue_notice:
+            notice = Notice(user=user, message=message, notice_type=notice_type)
+            notice.save()
+        if should_send(user, notice_type, "1", default=True) and user.email: # Email
+            recipients.append(user.email)
+    send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, recipients)
 
 
 def notices_for(user, archived=False):
