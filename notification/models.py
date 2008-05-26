@@ -5,6 +5,7 @@ from django.conf import settings
 from django.db.models import Q
 from django.db.models import get_model
 from django.core.urlresolvers import reverse
+from django.template.loader import render_to_string
 
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
