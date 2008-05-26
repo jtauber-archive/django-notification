@@ -1,9 +1,8 @@
-{% load i18n %}{% blocktrans %}You have received the following notice from Pinax:
+{% load i18n %}{% blocktrans %}You have received the following notice:
 
 {{ message }}
 
 To see other notices or change how you receive notifications,
-please go to http://pinax.hotcluboffrance.com/notices/
+please go to {{ notices_url }}
 
-If you have any issues, please don't hesitate to contact jtauber@jtauber.com
 {% endblocktrans %}
