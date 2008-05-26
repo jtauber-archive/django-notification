@@ -203,6 +203,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     message_body = render_to_string("notification/notification_body.txt", {
         "message": message_to_text(message),
         "notices_url": notices_url,
+        "contact_email": settings.CONTACT_EMAIL,
     })
 
     for user in users:
