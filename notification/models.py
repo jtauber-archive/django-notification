@@ -7,6 +7,8 @@ from django.db.models import get_model
 
 from django.contrib.auth.models import User
 
+from django.utils.translation import ugettext_lazy as _
+
 # favour django-mailer but fall back to django.core.mail
 try:
     from mailer import send_mail
@@ -16,9 +18,9 @@ except ImportError:
 
 class NoticeType(models.Model):
     
-    label = models.CharField(max_length=20)
-    display = models.CharField(max_length=50)
-    description = models.CharField(max_length=100)
+    label = models.CharField(_('label'), max_length=20)
+    display = models.CharField(_('display'), max_length=50)
+    description = models.CharField(_('description'), max_length=100)
     
     def __unicode__(self):
         return self.label
@@ -28,7 +30,7 @@ class NoticeType(models.Model):
 
 # if this gets updated, the create() method below needs to be as well...
 NOTICE_MEDIA = (
-    ("1", "Email"),
+    ("1", _("Email")),
 )
 
 class NoticeSetting(models.Model):
@@ -37,10 +39,10 @@ class NoticeSetting(models.Model):
     of a given type to a given medium.
     """
     
-    user = models.ForeignKey(User)
-    notice_type = models.ForeignKey(NoticeType)
-    medium = models.CharField(max_length=1, choices=NOTICE_MEDIA)
-    send = models.BooleanField(default=True)
+    user = models.ForeignKey(User, verbose_name=_('user'))
+    notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
+    medium = models.CharField(_('medium'), max_length=1, choices=NOTICE_MEDIA)
+    send = models.BooleanField(_('send'), default=True)
     
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
@@ -55,12 +57,12 @@ def should_send(user, notice_type, medium, default):
 
 class Notice(models.Model):
     
-    user = models.ForeignKey(User)
-    message = models.TextField()
-    notice_type = models.ForeignKey(NoticeType)
-    added = models.DateTimeField(default=datetime.datetime.now)
-    unseen = models.BooleanField(default=True)
-    archived = models.BooleanField(default=False)
+    user = models.ForeignKey(User, verbose_name=_('user'))
+    message = models.TextField(_('message'))
+    notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
+    added = models.DateTimeField(_('added'), default=datetime.datetime.now)
+    unseen = models.BooleanField(_('unseen'), default=True)
+    archived = models.BooleanField(_('archived'), default=False)
     
     def __unicode__(self):
         return self.message
@@ -177,18 +179,11 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     message = encode_message(message_template, *object_list)
     recipients = []
     
-    subject = "%s Notification From Pinax" % notice_type.display # @@@
-    message_body = """
-You have received the following notice from Pinax:
+    subject = _("%(display)s Notification From Pinax") % {'display': notice_type.display} # @@@
+    message_body = render_to_string("notification/notification_body.txt", {
+        "message": message_to_text(message),
+    })
 
-%s
-
-To see other notices or change how you receive notifications,
-please go to http://pinax.hotcluboffrance.com/notices/
-
-If you have any issues, please don't hesitate to contact jtauber@jtauber.com
-""" % message_to_text(message)
-    
     for user in users:
         if issue_notice:
             notice = Notice(user=user, message=message, notice_type=notice_type)
