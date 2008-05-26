@@ -29,6 +29,10 @@ class NoticeType(models.Model):
     
     class Admin:
         list_display = ('label', 'display', 'description')
+    
+    class Meta:
+        verbose_name = _("notice type")
+        verbose_name_plural = _("notice types")
 
 # if this gets updated, the create() method below needs to be as well...
 NOTICE_MEDIA = (
@@ -48,6 +52,10 @@ class NoticeSetting(models.Model):
     
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
+    
+    class Meta:
+        verbose_name = _("notice setting")
+        verbose_name_plural = _("notice settings")
 
 def should_send(user, notice_type, medium, default):
     try:
@@ -91,6 +99,8 @@ class Notice(models.Model):
     
     class Meta:
         ordering = ["-added"]
+        verbose_name = _("notice")
+        verbose_name_plural = _("notices")
     
     class Admin:
         list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
