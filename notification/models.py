@@ -4,7 +4,9 @@ from django.db import models
 from django.conf import settings
 from django.db.models import Q
 from django.db.models import get_model
+from django.core.urlresolvers import reverse
 
+from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from django.utils.translation import ugettext_lazy as _
@@ -179,7 +181,15 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     message = encode_message(message_template, *object_list)
     recipients = []
     
-    subject = _("%(display)s Notification From Pinax") % {'display': notice_type.display} # @@@
+    notices_url = u"http://%s%s" % (
+        unicode(Site.objects.get_current()),
+        reverse("notification_notices"),
+    )
+    
+    subject = render_to_string("notification/notification_subject.txt", {
+        "display": notice_type.display,
+        "notices_url": notices_url,
+    })
     message_body = render_to_string("notification/notification_body.txt", {
         "message": message_to_text(message),
     })
