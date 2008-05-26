@@ -1,1 +1,1 @@
-{% load 18n %}{% blocktrans %}{{ display }} Notification{% endblocktrans %}
+{% load i18n %}{% blocktrans %}{{ display }} Notification{% endblocktrans %}
