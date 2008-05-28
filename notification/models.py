@@ -11,6 +11,7 @@ from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 
 # favour django-mailer but fall back to django.core.mail
 try:
@@ -178,6 +179,7 @@ class FormatException(Exception):
 
 def decode_message(message, decoder):
     out = []
+    objects = []
     in_field = False
     prev = 0
     for index, ch in enumerate(message):
@@ -194,13 +196,15 @@ def decode_message(message, decoder):
                 raise FormatException("{ inside {}")
             elif ch == '}':
                 in_field = False
-                out.append(decoder(message[prev+1:index]))
+                objects.append(decoder(message[prev+1:index]))
+                out.append("%s")
                 prev = index + 1
     if in_field:
         raise FormatException("unmatched {")
     if prev <= index:
         out.append(message[prev:index+1])
-    return "".join(out)
+    result = "".join(out)
+    return ugettext(result) % tuple(objects)
 
 def message_to_text(message):
     def decoder(ref):
@@ -221,7 +225,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     This is intended to be how other apps create new notices.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
-    message = encode_message(message_template, *object_list)
+    message = encode_message(ugettext(message_template), *object_list)
     recipients = []
     
     notices_url = u"http://%s%s" % (
@@ -230,7 +234,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     )
     
     subject = render_to_string("notification/notification_subject.txt", {
-        "display": notice_type.display,
+        "display": ugettext(notice_type.display),
     })
     message_body = render_to_string("notification/notification_body.txt", {
         "message": message_to_text(message),
