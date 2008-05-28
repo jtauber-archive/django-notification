@@ -25,11 +25,14 @@ class NoticeType(models.Model):
     display = models.CharField(_('display'), max_length=50)
     description = models.CharField(_('description'), max_length=100)
     
+    # by default only on for media with sensitivity less than or equal to this number
+    default = models.IntegerField(_('default')) 
+    
     def __unicode__(self):
         return self.label
     
     class Admin:
-        list_display = ('label', 'display', 'description')
+        list_display = ('label', 'display', 'description', 'default')
     
     class Meta:
         verbose_name = _("notice type")
@@ -40,6 +43,11 @@ NOTICE_MEDIA = (
     ("1", _("Email")),
 )
 
+# how spam-sensitive is the medium
+NOTICE_MEDIA_DEFAULTS = {
+    "1": 2 # email
+}
+
 class NoticeSetting(models.Model):
     """
     Indicates, for a given user, whether to send notifications
@@ -49,7 +57,7 @@ class NoticeSetting(models.Model):
     user = models.ForeignKey(User, verbose_name=_('user'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     medium = models.CharField(_('medium'), max_length=1, choices=NOTICE_MEDIA)
-    send = models.BooleanField(_('send'), default=True)
+    send = models.BooleanField(_('send'))
     
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
@@ -58,12 +66,16 @@ class NoticeSetting(models.Model):
         verbose_name = _("notice setting")
         verbose_name_plural = _("notice settings")
 
-def should_send(user, notice_type, medium, default):
+def get_notification_setting(user, notice_type, medium):
     try:
-        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium).send
+        return NoticeSetting.objects.get(user=request.user, notice_type=notice_type, medium=medium_id)
     except NoticeSetting.DoesNotExist:
-        NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default).save()
-        return default
+        default = (NOTICE_MEDIA_DEFAULT[medium] <= notice_type.default)
+        setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
+
+
+def should_send(user, notice_type, medium):
+    return get_notification_setting(user, notice_type, medium).send
 
 
 class Notice(models.Model):
@@ -107,7 +119,7 @@ class Notice(models.Model):
         list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
 
 
-def create_notice_type(label, display, description):
+def create_notice_type(label, display, description, default=2):
     """
     create a new NoticeType.
     
@@ -122,11 +134,14 @@ def create_notice_type(label, display, description):
         if description != notice_type.description:
             notice_type.description = description
             updated = True
+        if default != notice_type.default:
+            notice_type.default = default
+            updated = True
         if updated:
             notice_type.save()
             print "Updated %s NoticeType" % label
     except NoticeType.DoesNotExist:
-        NoticeType(label=label, display=display, description=description).save()
+        NoticeType(label=label, display=display, description=description, default=default).save()
         print "Created %s NoticeType" % label
 
 # a notice like "foo and bar are now friends" is stored in the database
@@ -225,7 +240,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
         if issue_notice:
             notice = Notice(user=user, message=message, notice_type=notice_type)
             notice.save()
-        if should_send(user, notice_type, "1", default=True) and user.email: # Email
+        if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
     send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, recipients)
 
