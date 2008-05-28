@@ -129,6 +129,21 @@ def create_notice_type(label, display, description):
         NoticeType(label=label, display=display, description=description).save()
         print "Created %s NoticeType" % label
 
+# a notice like "foo and bar are now friends" is stored in the database
+# as "{auth.User.5} and {auth.User.7} are now friends".
+#
+# encode_object takes an object and turns it into "{app.Model.pk}"
+# decode_object takes "{app.Model.pk}" and turns it into the object
+#
+# encode_message takes ("%s and %s are now friends", [foo, bar]) and turns
+# it into "{auth.User.5} and {auth.User.7} are now friends".
+#
+# decode_message takes "{auth.User.5} and {auth.User.7}" and converts it
+# into a string using the given decode function to convert the object to
+# string representation
+#
+# message_to_text and message_to_html use decode_message to produce a
+# text and html version of the message respectively.
 
 def encode_object(obj):
     return "{%s.%s.%s}" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
