@@ -166,9 +166,14 @@ def create_notice_type(label, display, description, default=2):
 def encode_object(obj):
     return "{%s.%s.%s}" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
 
-
-def encode_message(message_template, *objects):
-    return message_template % tuple(encode_object(obj) for obj in objects)
+def encode_message(message_template, objects):
+    if objects is None:
+        return message_template
+    if isinstance(objects, list) or isinstance(objects, tuple):
+        return message_template % tuple(encode_object(obj) for obj in objects)
+    if type(objects) is dict:
+        return message_template % dict((name, encode_object(obj)) for name, obj in objects.iteritems())
+    return ''
 
 def decode_object(ref):
     app, name, pk = ref.split(".")
@@ -221,14 +226,14 @@ def message_to_html(message):
     return decode_message(message, decoder)
 
 
-def send(users, notice_type_label, message_template, object_list=[], issue_notice=True):
+def send(users, notice_type_label, message_template, object_list=None, issue_notice=True):
     """
     create a new notice.
     
     This is intended to be how other apps create new notices.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
-    message = encode_message(message_template, *object_list)
+    message = encode_message(message_template, object_list)
     recipients = []
     
     notices_url = u"http://%s%s" % (
