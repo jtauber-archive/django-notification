@@ -214,7 +214,10 @@ def message_to_text(message):
 def message_to_html(message):
     def decoder(ref):
         obj = decode_object(ref)
-        return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj))
+        if hasattr(obj, "get_absolute_url"): # don't fail silenty if get_absolute_url hasn't been defined
+            return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj))
+        else:
+            return unicode(obj)
     return decode_message(message, decoder)
 
 
