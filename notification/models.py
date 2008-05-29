@@ -228,7 +228,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     This is intended to be how other apps create new notices.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
-    message = encode_message(ugettext(message_template), *object_list)
+    message = encode_message(message_template, *object_list)
     recipients = []
     
     notices_url = u"http://%s%s" % (
