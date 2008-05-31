@@ -11,6 +11,8 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 
+from notification import backends
+
 
 class NoticeType(models.Model):
     
@@ -31,12 +33,13 @@ class NoticeType(models.Model):
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
 
-# if this gets updated, the create() method below needs to be as well...
-NOTICE_MEDIA = (
-    ("1", _("Email")),
+NOTIFICATION_BACKENDS = backends.load_backends()
+NOTICE_MEDIA = tuple(
+    ((i, backend_label) for i, backend_label in enumerate(NOTIFICATION_BACKENDS.keys()))
 )
 
 # how spam-sensitive is the medium
+# TODO: fix this with the backends
 NOTICE_MEDIA_DEFAULTS = {
     "1": 2 # email
 }
@@ -244,6 +247,8 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
     
     This is intended to be how other apps create new notices.
     """
+    backends = NOTIFICATION_BACKENDS.values()
+    
     notice_type = NoticeType.objects.get(label=notice_type_label)
     message = encode_message(message_template, object_list)
 
