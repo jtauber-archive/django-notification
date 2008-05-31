@@ -4,20 +4,12 @@ from django.db import models
 from django.conf import settings
 from django.db.models import Q
 from django.db.models import get_model
-from django.core.urlresolvers import reverse
-from django.template.loader import render_to_string
 
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
-
-# favour django-mailer but fall back to django.core.mail
-try:
-    from mailer import send_mail
-except ImportError:
-    from django.core.mail import send_mail
 
 
 class NoticeType(models.Model):
@@ -254,29 +246,16 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
     message = encode_message(message_template, object_list)
-    recipients = []
-    
-    notices_url = u"http://%s%s" % (
-        unicode(Site.objects.get_current()),
-        reverse("notification_notices"),
-    )
-    
-    subject = render_to_string("notification/notification_subject.txt", {
-        "display": ugettext(notice_type.display),
-    })
-    message_body = render_to_string("notification/notification_body.txt", {
-        "message": message_to_text(message),
-        "notices_url": notices_url,
-        "contact_email": settings.CONTACT_EMAIL,
-    })
 
     for user in users:
         if issue_notice:
             notice = Notice(user=user, message=message, notice_type=notice_type)
             notice.save()
-        if should_send(user, notice_type, "1") and user.email: # Email
-            recipients.append(user.email)
-    send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, recipients)
+        for backend in backends:
+            if backend.can_send(user, notice_type):
+                backend.recipients.append(user)
+    for backend in backends:
+        backend.deliver(notice_type)
 
 
 def notices_for(user, archived=False):
