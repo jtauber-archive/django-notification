@@ -19,7 +19,7 @@ class EmailBackend(backends.BaseBackend):
             return True
         return False
         
-    def deliver(self, recipients, notice_type):
+    def deliver(self, recipients, notice_type, message):
         notices_url = u"http://%s%s" % (
             unicode(Site.objects.get_current()),
             reverse("notification_notices"),

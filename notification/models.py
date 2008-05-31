@@ -260,7 +260,7 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
             if backend.can_send(user, notice_type):
                 recipients.append(user)
     for key, backend in NOTIFICATION_BACKENDS:
-        backend.deliver(backend_recipients[key], notice_type)
+        backend.deliver(backend_recipients[key], notice_type, message)
 
 
 def notices_for(user, archived=False):
