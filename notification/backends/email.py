@@ -5,6 +5,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext
 
 from notification import backends
+from notification.message import message_to_text
 
 # favour django-mailer but fall back to django.core.mail
 try:
