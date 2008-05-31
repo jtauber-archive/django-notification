@@ -247,8 +247,6 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
     
     This is intended to be how other apps create new notices.
     """
-    backends = NOTIFICATION_BACKENDS
-    
     notice_type = NoticeType.objects.get(label=notice_type_label)
     message = encode_message(message_template, object_list)
     backend_recipients = {}
