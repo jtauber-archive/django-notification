@@ -11,6 +11,7 @@ from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
 from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext
 
 # favour django-mailer but fall back to django.core.mail
 try:
@@ -21,15 +22,18 @@ except ImportError:
 
 class NoticeType(models.Model):
     
-    label = models.CharField(_('label'), max_length=20)
+    label = models.CharField(_('label'), max_length=40)
     display = models.CharField(_('display'), max_length=50)
     description = models.CharField(_('description'), max_length=100)
+    
+    # by default only on for media with sensitivity less than or equal to this number
+    default = models.IntegerField(_('default')) 
     
     def __unicode__(self):
         return self.label
     
     class Admin:
-        list_display = ('label', 'display', 'description')
+        list_display = ('label', 'display', 'description', 'default')
     
     class Meta:
         verbose_name = _("notice type")
@@ -40,6 +44,11 @@ NOTICE_MEDIA = (
     ("1", _("Email")),
 )
 
+# how spam-sensitive is the medium
+NOTICE_MEDIA_DEFAULTS = {
+    "1": 2 # email
+}
+
 class NoticeSetting(models.Model):
     """
     Indicates, for a given user, whether to send notifications
@@ -49,7 +58,7 @@ class NoticeSetting(models.Model):
     user = models.ForeignKey(User, verbose_name=_('user'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     medium = models.CharField(_('medium'), max_length=1, choices=NOTICE_MEDIA)
-    send = models.BooleanField(_('send'), default=True)
+    send = models.BooleanField(_('send'))
     
     class Admin:
         list_display = ('id', 'user', 'notice_type', 'medium', 'send')
@@ -58,12 +67,18 @@ class NoticeSetting(models.Model):
         verbose_name = _("notice setting")
         verbose_name_plural = _("notice settings")
 
-def should_send(user, notice_type, medium, default):
+def get_notification_setting(user, notice_type, medium):
     try:
-        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium).send
+        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium)
     except NoticeSetting.DoesNotExist:
-        NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default).save()
-        return default
+        default = (NOTICE_MEDIA_DEFAULTS[medium] <= notice_type.default)
+        setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
+        setting.save()
+        return setting
+
+
+def should_send(user, notice_type, medium):
+    return get_notification_setting(user, notice_type, medium).send
 
 
 class Notice(models.Model):
@@ -107,7 +122,7 @@ class Notice(models.Model):
         list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
 
 
-def create_notice_type(label, display, description):
+def create_notice_type(label, display, description, default=2):
     """
     create a new NoticeType.
     
@@ -122,30 +137,64 @@ def create_notice_type(label, display, description):
         if description != notice_type.description:
             notice_type.description = description
             updated = True
+        if default != notice_type.default:
+            notice_type.default = default
+            updated = True
         if updated:
             notice_type.save()
             print "Updated %s NoticeType" % label
     except NoticeType.DoesNotExist:
-        NoticeType(label=label, display=display, description=description).save()
+        NoticeType(label=label, display=display, description=description, default=default).save()
         print "Created %s NoticeType" % label
 
+# a notice like "foo and bar are now friends" is stored in the database
+# as "{auth.User.5} and {auth.User.7} are now friends".
+#
+# encode_object takes an object and turns it into "{app.Model.pk}" or
+# "{app.Model.pk.msgid}" if named arguments are used in send()
+# decode_object takes "{app.Model.pk}" and turns it into the object
+#
+# encode_message takes either ("%s and %s are now friends", [foo, bar]) or
+# ("%(foo)s and %(bar)s are now friends", {'foo':foo, 'bar':bar}) and turns
+# it into "{auth.User.5} and {auth.User.7} are now friends".
+#
+# decode_message takes "{auth.User.5} and {auth.User.7}" and converts it
+# into a string using the given decode function to convert the object to
+# string representation
+#
+# message_to_text and message_to_html use decode_message to produce a
+# text and html version of the message respectively.
 
-def encode_object(obj):
-    return "{%s.%s.%s}" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
+def encode_object(obj, name=None):
+    encoded = "%s.%s.%s" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
+    if name:
+        encoded = "%s.%s" % (encoded, name)
+    return "{%s}" % encoded
 
-
-def encode_message(message_template, *objects):
-    return message_template % tuple(encode_object(obj) for obj in objects)
+def encode_message(message_template, objects):
+    if objects is None:
+        return message_template
+    if isinstance(objects, list) or isinstance(objects, tuple):
+        return message_template % tuple(encode_object(obj) for obj in objects)
+    if type(objects) is dict:
+        return message_template % dict((name, encode_object(obj, name)) for name, obj in objects.iteritems())
+    return ''
 
 def decode_object(ref):
-    app, name, pk = ref.split(".")
-    return get_model(app, name).objects.get(pk=pk)
+    decoded = ref.split(".")
+    if len(decoded) == 4:
+        app, name, pk, msgid = decoded
+        return get_model(app, name).objects.get(pk=pk), msgid
+    app, name, pk = decoded
+    return get_model(app, name).objects.get(pk=pk), None
 
 class FormatException(Exception):
     pass
 
 def decode_message(message, decoder):
     out = []
+    objects = []
+    mapping = {}
     in_field = False
     prev = 0
     for index, ch in enumerate(message):
@@ -162,34 +211,49 @@ def decode_message(message, decoder):
                 raise FormatException("{ inside {}")
             elif ch == '}':
                 in_field = False
-                out.append(decoder(message[prev+1:index]))
+                obj, msgid = decoder(message[prev+1:index])
+                if msgid is None:
+                    objects.append(obj)
+                    out.append("%s")
+                else:
+                    mapping[msgid] = obj
+                    out.append("%("+msgid+")s")
                 prev = index + 1
     if in_field:
         raise FormatException("unmatched {")
     if prev <= index:
         out.append(message[prev:index+1])
-    return "".join(out)
+    result = "".join(out)
+    if mapping:
+        args = mapping
+    else:
+        args = tuple(objects)
+    return ugettext(result) % args
 
 def message_to_text(message):
     def decoder(ref):
-        return unicode(decode_object(ref))
+        obj, msgid = decode_object(ref)
+        return unicode(obj), msgid
     return decode_message(message, decoder)
 
 def message_to_html(message):
     def decoder(ref):
-        obj = decode_object(ref)
-        return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj))
+        obj, msgid = decode_object(ref)
+        if hasattr(obj, "get_absolute_url"): # don't fail silenty if get_absolute_url hasn't been defined
+            return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj)), msgid
+        else:
+            return unicode(obj), msgid
     return decode_message(message, decoder)
 
 
-def send(users, notice_type_label, message_template, object_list=[], issue_notice=True):
+def send(users, notice_type_label, message_template, object_list=None, issue_notice=True):
     """
     create a new notice.
     
     This is intended to be how other apps create new notices.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
-    message = encode_message(message_template, *object_list)
+    message = encode_message(message_template, object_list)
     recipients = []
     
     notices_url = u"http://%s%s" % (
@@ -198,7 +262,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
     )
     
     subject = render_to_string("notification/notification_subject.txt", {
-        "display": notice_type.display,
+        "display": ugettext(notice_type.display),
     })
     message_body = render_to_string("notification/notification_body.txt", {
         "message": message_to_text(message),
@@ -210,7 +274,7 @@ def send(users, notice_type_label, message_template, object_list=[], issue_notic
         if issue_notice:
             notice = Notice(user=user, message=message, notice_type=notice_type)
             notice.save()
-        if should_send(user, notice_type, "1", default=True) and user.email: # Email
+        if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
     send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, recipients)
 
