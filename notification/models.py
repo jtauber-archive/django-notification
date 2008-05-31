@@ -144,7 +144,7 @@ def create_notice_type(label, display, description, default=2):
         print "Created %s NoticeType" % label
 
 
-def send(users, notice_type_label, message_template, object_list=None, issue_notice=True):
+def send(users, notice_type_label, message_template, object_list=None):
     """
     create a new notice.
     
@@ -155,9 +155,8 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
     backend_recipients = {}
 
     for user in users:
-        if issue_notice:
-            notice = Notice(user=user, message=message, notice_type=notice_type)
-            notice.save()
+        notice = Notice(user=user, message=message, notice_type=notice_type)
+        notice.save()
         for key, backend in NOTIFICATION_BACKENDS:
             recipients = backend_recipients.setdefault(key, [])
             if backend.can_send(user, notice_type):
