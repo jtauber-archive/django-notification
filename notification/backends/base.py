@@ -3,9 +3,6 @@ class BaseBackend(object):
     """
     The base backend.
     """
-    def __init__(self):
-        self.recipients = []
-    
     def can_send(self, user, notice_type):
         """
         Determines whether this backend is allowed to send a notification to
@@ -13,7 +10,7 @@ class BaseBackend(object):
         """
         return False
     
-    def deliver(self, notice_type):
+    def deliver(self, recipients, notice_type):
         """
         Called once each recipient has been verified with ``can_send``. This
         will determine the best way to deliver the notification to all

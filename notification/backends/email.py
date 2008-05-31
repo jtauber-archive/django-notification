@@ -19,7 +19,7 @@ class EmailBackend(backends.BaseBackend):
             return True
         return False
         
-    def deliver(self, notice_type):
+    def deliver(self, recipients, notice_type):
         notices_url = u"http://%s%s" % (
             unicode(Site.objects.get_current()),
             reverse("notification_notices"),
@@ -32,5 +32,5 @@ class EmailBackend(backends.BaseBackend):
             "notices_url": notices_url,
             "contact_email": settings.CONTACT_EMAIL,
         })
-        send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL,
-            self.recipients)
+        send_mail(subject, message_body,
+            settings.DEFAULT_FROM_EMAIL, recipients)
