@@ -10,6 +10,9 @@ from django.template.loader import render_to_string
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes import generic
+
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
 
@@ -27,7 +30,7 @@ class NoticeType(models.Model):
     description = models.CharField(_('description'), max_length=100)
     
     # by default only on for media with sensitivity less than or equal to this number
-    default = models.IntegerField(_('default')) 
+    default = models.IntegerField(_('default'))
     
     def __unicode__(self):
         return self.label
@@ -38,6 +41,7 @@ class NoticeType(models.Model):
     class Meta:
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
+
 
 # if this gets updated, the create() method below needs to be as well...
 NOTICE_MEDIA = (
@@ -75,7 +79,6 @@ def get_notification_setting(user, notice_type, medium):
         setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
         setting.save()
         return setting
-
 
 def should_send(user, notice_type, medium):
     return get_notification_setting(user, notice_type, medium).send
@@ -146,6 +149,7 @@ def create_notice_type(label, display, description, default=2):
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description, default=default).save()
         print "Created %s NoticeType" % label
+
 
 # a notice like "foo and bar are now friends" is stored in the database
 # as "{auth.User.5} and {auth.User.7} are now friends".
@@ -269,7 +273,7 @@ def send(users, notice_type_label, message_template, object_list=None, issue_not
         "notices_url": notices_url,
         "contact_email": settings.CONTACT_EMAIL,
     })
-
+    
     for user in users:
         if issue_notice:
             notice = Notice(user=user, message=message, notice_type=notice_type)
@@ -303,3 +307,91 @@ def unseen_count_for(user):
     mark them seen
     """
     return Notice.objects.filter(user=user, unseen=True).count()
+
+
+class ObservedItemManager(models.Manager):
+
+    def all_for(self, observed, signal):
+        """
+        Returns all ObservedItems for an observed object,
+        to be sent when a signal is emited.
+        """
+        content_type = ContentType.objects.get_for_model(observed)
+        observed_items = self.filter(content_type=content_type, object_id=observed.id, signal=signal)
+        return observed_items
+    
+    def get_for(self, observed, observer, signal):
+        content_type = ContentType.objects.get_for_model(observed)
+        observed_item = self.get(content_type=content_type, object_id=observed.id, user=observer, signal=signal)
+        return observed_item
+
+
+class ObservedItem(models.Model):
+
+    user = models.ForeignKey(User, verbose_name=_('user'))
+    
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    observed_object = generic.GenericForeignKey('content_type', 'object_id')
+    
+    notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
+    message_template = models.TextField(verbose_name=_('message template'))
+    
+    added = models.DateTimeField(_('added'), default=datetime.datetime.now)
+    
+    # the signal that will be listened to send the notice
+    signal = models.TextField(verbose_name=_('signal'))
+    
+    objects = ObservedItemManager()
+    
+    class Meta:
+        ordering = ['-added']
+        verbose_name = _('observed item')
+        verbose_name_plural = _('observed items')
+    
+    class Admin:
+        pass
+    
+    def send_notice(self):
+        send([self.user], self.notice_type.label, self.message_template,
+             [self.observed_object])
+
+
+def observe(observed, observer, notice_type_label, message_template, signal='post_save'):
+    """
+    Create a new ObservedItem.
+    
+    To be used by applications to register a user as an observer for some object.
+    """
+    notice_type = NoticeType.objects.get(label=notice_type_label)
+    observed_item = ObservedItem(user=observer, observed_object=observed, notice_type=notice_type, message_template=message_template, signal=signal)
+    observed_item.save()
+    return observed_item
+
+def stop_observing(observed, observer, signal='post_save'):
+    """
+    Remove an observed item.
+    """
+    observed_item = ObservedItem.objects.get_for(observed, observer, signal)
+    observed_item.delete()
+
+def send_observation_notices_for(observed, signal='post_save'):
+    """
+    Send a notice for each registered user about an observed object.
+    """
+    observed_items = ObservedItem.objects.all_for(observed, signal)
+    for observed_item in observed_items:
+        observed_item.send_notice()
+    return observed_items
+
+def is_observing(observed, observer, signal='post_save'):
+    try:
+        observed_items = ObservedItem.objects.get_for(observed, observer, signal)
+        return True
+    except ObservedItem.DoesNotExist:
+        return False
+    except ObservedItem.MultipleObjectsReturned:
+        return True
+
+def handle_observations(sender, instance, *args, **kw):
+    send_observation_notices_for(instance)
