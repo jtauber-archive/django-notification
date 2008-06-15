@@ -2,7 +2,6 @@ import datetime
 
 from django.db import models
 from django.conf import settings
-from django.db.models import Q
 from django.db.models import get_model
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
@@ -289,16 +288,11 @@ def notices_for(user, archived=False):
     
     If archived=False, it only include notices not archived.
     If archived=True, it returns all notices for that user.
-    Superusers receive all notices.
     """
-    if user.is_superuser:
-        q = Q()
-    else:
-        q = Q(user=user)
     if archived:
-        return Notice.objects.filter(q)
+        return Notice.objects.filter(user=user)
     else:
-        return Notice.objects.filter(q, archived=archived)
+        return Notice.objects.filter(user=user, archived=archived)
 
 
 def unseen_count_for(user):
