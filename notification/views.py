@@ -1,14 +1,14 @@
 from django.shortcuts import render_to_response
 from django.http import HttpResponseRedirect
 from django.template import RequestContext
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required
 
 from notification.models import *
 
 @login_required
 def notices(request):
     notice_types = NoticeType.objects.all()
-    notices = notices_for(request.user)
+    notices = Notice.objects.notices_for(request.user)
     settings_table = []
     for notice_type in NoticeType.objects.all():
         settings_row = []

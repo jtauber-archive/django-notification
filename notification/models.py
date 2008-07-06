@@ -2,18 +2,17 @@ import datetime
 
 from django.db import models
 from django.conf import settings
-from django.db.models import get_model
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 
 from django.contrib.sites.models import Site
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, SiteProfileNotAvailable
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
 
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext
+from django.utils.translation import ugettext, get_language, activate
 
 # favour django-mailer but fall back to django.core.mail
 try:
@@ -27,10 +26,10 @@ class NoticeType(models.Model):
     label = models.CharField(_('label'), max_length=40)
     display = models.CharField(_('display'), max_length=50)
     description = models.CharField(_('description'), max_length=100)
-    
+
     # by default only on for media with sensitivity less than or equal to this number
     default = models.IntegerField(_('default'))
-    
+
     def __unicode__(self):
         return self.label
     
@@ -83,6 +82,27 @@ def should_send(user, notice_type, medium):
     return get_notification_setting(user, notice_type, medium).send
 
 
+class NoticeManager(models.Manager):
+
+    def notices_for(self, user, archived=False):
+        """
+        returns Notice objects for the given user.
+
+        If archived=False, it only include notices not archived.
+        If archived=True, it returns all notices for that user.
+        """
+        if archived:
+            return self.filter(user=user)
+        else:
+            return self.filter(user=user, archived=archived)
+
+    def unseen_count_for(self, user):
+        """
+        returns the number of unseen notices for the given user but does not
+        mark them seen
+        """
+        return self.filter(user=user, unseen=True).count()
+
 class Notice(models.Model):
     
     user = models.ForeignKey(User, verbose_name=_('user'))
@@ -91,6 +111,8 @@ class Notice(models.Model):
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
     unseen = models.BooleanField(_('unseen'), default=True)
     archived = models.BooleanField(_('archived'), default=False)
+    
+    objects = NoticeManager()
     
     def __unicode__(self):
         return self.message
@@ -112,9 +134,6 @@ class Notice(models.Model):
             self.save()
         return unseen
     
-    def html_message(self):
-        return message_to_html(self.message)
-    
     class Meta:
         ordering = ["-added"]
         verbose_name = _("notice")
@@ -123,10 +142,9 @@ class Notice(models.Model):
     class Admin:
         list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
 
-
 def create_notice_type(label, display, description, default=2):
     """
-    create a new NoticeType.
+    Creates a new NoticeType.
     
     This is intended to be used by other apps as a post_syncdb manangement step.
     """
@@ -149,159 +167,77 @@ def create_notice_type(label, display, description, default=2):
         NoticeType(label=label, display=display, description=description, default=default).save()
         print "Created %s NoticeType" % label
 
-
-# a notice like "foo and bar are now friends" is stored in the database
-# as "{auth.User.5} and {auth.User.7} are now friends".
-#
-# encode_object takes an object and turns it into "{app.Model.pk}" or
-# "{app.Model.pk.msgid}" if named arguments are used in send()
-# decode_object takes "{app.Model.pk}" and turns it into the object
-#
-# encode_message takes either ("%s and %s are now friends", [foo, bar]) or
-# ("%(foo)s and %(bar)s are now friends", {'foo':foo, 'bar':bar}) and turns
-# it into "{auth.User.5} and {auth.User.7} are now friends".
-#
-# decode_message takes "{auth.User.5} and {auth.User.7}" and converts it
-# into a string using the given decode function to convert the object to
-# string representation
-#
-# message_to_text and message_to_html use decode_message to produce a
-# text and html version of the message respectively.
-
-def encode_object(obj, name=None):
-    encoded = "%s.%s.%s" % (obj._meta.app_label, obj._meta.object_name, obj.pk)
-    if name:
-        encoded = "%s.%s" % (encoded, name)
-    return "{%s}" % encoded
-
-def encode_message(message_template, objects):
-    if objects is None:
-        return message_template
-    if isinstance(objects, list) or isinstance(objects, tuple):
-        return message_template % tuple(encode_object(obj) for obj in objects)
-    if type(objects) is dict:
-        return message_template % dict((name, encode_object(obj, name)) for name, obj in objects.iteritems())
-    return ''
-
-def decode_object(ref):
-    decoded = ref.split(".")
-    if len(decoded) == 4:
-        app, name, pk, msgid = decoded
-        return get_model(app, name).objects.get(pk=pk), msgid
-    app, name, pk = decoded
-    return get_model(app, name).objects.get(pk=pk), None
-
-class FormatException(Exception):
-    pass
-
-def decode_message(message, decoder):
-    out = []
-    objects = []
-    mapping = {}
-    in_field = False
-    prev = 0
-    for index, ch in enumerate(message):
-        if not in_field:
-            if ch == '{':
-                in_field = True
-                if prev != index:
-                    out.append(message[prev:index])
-                prev = index
-            elif ch == '}':
-                raise FormatException("unmatched }")
-        elif in_field:
-            if ch == '{':
-                raise FormatException("{ inside {}")
-            elif ch == '}':
-                in_field = False
-                obj, msgid = decoder(message[prev+1:index])
-                if msgid is None:
-                    objects.append(obj)
-                    out.append("%s")
-                else:
-                    mapping[msgid] = obj
-                    out.append("%("+msgid+")s")
-                prev = index + 1
-    if in_field:
-        raise FormatException("unmatched {")
-    if prev <= index:
-        out.append(message[prev:index+1])
-    result = "".join(out)
-    if mapping:
-        args = mapping
-    else:
-        args = tuple(objects)
-    return ugettext(result) % args
-
-def message_to_text(message):
-    def decoder(ref):
-        obj, msgid = decode_object(ref)
-        return unicode(obj), msgid
-    return decode_message(message, decoder)
-
-def message_to_html(message):
-    def decoder(ref):
-        obj, msgid = decode_object(ref)
-        if hasattr(obj, "get_absolute_url"): # don't fail silenty if get_absolute_url hasn't been defined
-            return u"""<a href="%s">%s</a>""" % (obj.get_absolute_url(), unicode(obj)), msgid
-        else:
-            return unicode(obj), msgid
-    return decode_message(message, decoder)
-
-
-def send(users, notice_type_label, message_template, object_list=None, issue_notice=True):
+def get_formatted_messages(formats, label, context):
     """
-    create a new notice.
+    Returns a dictionary with the format identifier as the key. The values are
+    are fully rendered templates with the given context.
+    """
+    format_templates = {}
+    for format in formats:
+        format_templates[format] = render_to_string((
+            'notification/%s/%s.html' % (label, format),
+            'notification/%s.html' % format), context)
+    return format_templates
+
+def send(recipient, label, extra_context={}, issue_notice=True):
+    """
+    Creates a new notice.
     
     This is intended to be how other apps create new notices.
-    """
-    notice_type = NoticeType.objects.get(label=notice_type_label)
-    message = encode_message(message_template, object_list)
-    recipients = []
     
+    notification.send(user, 'friends_invite_sent', {
+        'spam': 'eggs',
+        'foo': 'bar',
+    )
+    """
+    if not isinstance(recipient, (list, tuple)):
+        recipient = (recipient,)
+
+    notice_type = NoticeType.objects.get(label=label)
+    
+    current_site = Site.objects.get_current()
     notices_url = u"http://%s%s" % (
-        unicode(Site.objects.get_current()),
+        unicode(current_site),
         reverse("notification_notices"),
     )
     
-    subject = render_to_string("notification/notification_subject.txt", {
-        "display": ugettext(notice_type.display),
-    })
-    message_body = render_to_string("notification/notification_body.txt", {
-        "message": message_to_text(message),
+    context = {
+        "notice": ugettext(notice_type.display),
         "notices_url": notices_url,
-        "contact_email": settings.CONTACT_EMAIL,
-    })
-    
-    for user in users:
+        "current_site": current_site,
+    }
+    context.update(extra_context)
+
+    recipients = []
+    current_language = get_language()
+
+    formats = ('short', 'plain', 'full') # TODO make that formats configurable
+
+    for user in recipient:
+        # get user profiles if available
+        try:
+            profile = user.get_profile()
+        except SiteProfileNotAvailable:
+            profile = None
+
+        # activate language of user to send message translated
+        if profile is not None:
+            # get language attribute of user profile
+            language = getattr(profile, "language", None)
+            if language is not None:
+                # activate the user's language
+                activate(language)
+
+        messages = get_formatted_messages(formats, label, context)
+
         if issue_notice:
-            notice = Notice(user=user, message=message, notice_type=notice_type)
-            notice.save()
+            notice = Notice.objects.create(user=user, message=messages['full'], notice_type=notice_type)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
-    send_mail(subject, message_body, settings.DEFAULT_FROM_EMAIL, recipients)
+        send_mail(messages['short'], messages['plain'], settings.DEFAULT_FROM_EMAIL, recipients)
 
-
-def notices_for(user, archived=False):
-    """
-    returns Notice objects for the given user.
-    
-    If archived=False, it only include notices not archived.
-    If archived=True, it returns all notices for that user.
-    """
-    if archived:
-        return Notice.objects.filter(user=user)
-    else:
-        return Notice.objects.filter(user=user, archived=archived)
-
-
-def unseen_count_for(user):
-    """
-    returns the number of unseen notices for the given user but does not
-    mark them seen
-    """
-    return Notice.objects.filter(user=user, unseen=True).count()
-
+    # reset environment to original language
+    activate(current_language)
 
 class ObservedItemManager(models.Manager):
 
