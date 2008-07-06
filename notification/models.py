@@ -174,9 +174,10 @@ def get_formatted_messages(formats, label, context):
     """
     format_templates = {}
     for format in formats:
-        format_templates[format] = render_to_string((
-            'notification/%s/%s.html' % (label, format),
-            'notification/%s.html' % format), context)
+        name = format.split(".")[0]
+        format_templates[name] = render_to_string((
+            'notification/%s/%s' % (label, format),
+            'notification/%s' % format), context)
     return format_templates
 
 def send(recipient, label, extra_context={}, issue_notice=True):
@@ -211,7 +212,12 @@ def send(recipient, label, extra_context={}, issue_notice=True):
     recipients = []
     current_language = get_language()
 
-    formats = ('short', 'plain', 'full') # TODO make that formats configurable
+    formats = (
+        'short.txt'
+        'plain.txt',
+        'teaser.html',
+        'full.html',
+    ) # TODO make formats configurable
 
     for user in recipient:
         # get user profiles if available
@@ -228,13 +234,23 @@ def send(recipient, label, extra_context={}, issue_notice=True):
                 # activate the user's language
                 activate(language)
 
+        # get prerendered format messages
         messages = get_formatted_messages(formats, label, context)
 
+        # Strip newlines from subject
+        subject = ''.join(render_to_string('notification/email_subject.txt', {
+            'message': messages['short'],
+        }, context).splitlines())
+        
+        body = render_to_string('notification/email_body.txt', {
+            'message': messages['plain'],
+        }, context)
+
         if issue_notice:
-            notice = Notice.objects.create(user=user, message=messages['full'], notice_type=notice_type)
+            notice = Notice.objects.create(user=user, message=messages['teaser'], notice_type=notice_type)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
-        send_mail(messages['short'], messages['plain'], settings.DEFAULT_FROM_EMAIL, recipients)
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients)
 
     # reset environment to original language
     activate(current_language)
