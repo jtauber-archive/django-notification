@@ -213,7 +213,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
     current_language = get_language()
 
     formats = (
-        'short.txt'
+        'short.txt',
         'plain.txt',
         'teaser.html',
         'full.html',
