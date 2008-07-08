@@ -3,6 +3,7 @@ import datetime
 from django.db import models
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.template import Context
 from django.template.loader import render_to_string
 
 from django.contrib.sites.models import Site
@@ -202,11 +203,11 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         reverse("notification_notices"),
     )
     
-    context = {
+    context = Context({
         "notice": ugettext(notice_type.display),
         "notices_url": notices_url,
         "current_site": current_site,
-    }
+    })
     context.update(extra_context)
 
     recipients = []
