@@ -192,9 +192,6 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         'foo': 'bar',
     )
     """
-    if not isinstance(recipient, (list, tuple)):
-        recipient = (recipient,)
-
     notice_type = NoticeType.objects.get(label=label)
     
     current_site = Site.objects.get_current()
