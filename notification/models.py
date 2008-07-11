@@ -85,17 +85,24 @@ def should_send(user, notice_type, medium):
 
 class NoticeManager(models.Manager):
 
-    def notices_for(self, user, archived=False):
+    def notices_for(self, user, archived=False, unseen=None):
         """
         returns Notice objects for the given user.
 
         If archived=False, it only include notices not archived.
         If archived=True, it returns all notices for that user.
+        
+        If unseen=None, it includes all notices.
+        If unseen=True, return only unseen notices.
+        If unseen=False, return only seen notices.
         """
         if archived:
-            return self.filter(user=user)
+            qs = self.filter(user=user)
         else:
-            return self.filter(user=user, archived=archived)
+            qs = self.filter(user=user, archived=archived)
+        if unseen is not None:
+            qs = qs.filter(unseen=unseen)
+        return qs
 
     def unseen_count_for(self, user):
         """
