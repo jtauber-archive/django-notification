@@ -34,9 +34,6 @@ class NoticeType(models.Model):
     def __unicode__(self):
         return self.label
     
-    class Admin:
-        list_display = ('label', 'display', 'description', 'default')
-    
     class Meta:
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
@@ -62,9 +59,6 @@ class NoticeSetting(models.Model):
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     medium = models.CharField(_('medium'), max_length=1, choices=NOTICE_MEDIA)
     send = models.BooleanField(_('send'))
-    
-    class Admin:
-        list_display = ('id', 'user', 'notice_type', 'medium', 'send')
     
     class Meta:
         verbose_name = _("notice setting")
@@ -147,9 +141,6 @@ class Notice(models.Model):
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
     
-    class Admin:
-        list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
-
 def create_notice_type(label, display, description, default=2):
     """
     Creates a new NoticeType.
@@ -299,9 +290,6 @@ class ObservedItem(models.Model):
         ordering = ['-added']
         verbose_name = _('observed item')
         verbose_name_plural = _('observed items')
-    
-    class Admin:
-        pass
     
     def send_notice(self):
         send([self.user], self.notice_type.label, self.message_template,
