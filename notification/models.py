@@ -205,7 +205,6 @@ def send(recipient, label, extra_context={}, issue_notice=True):
     })
     context.update(extra_context)
 
-    recipients = []
     current_language = get_language()
 
     formats = (
@@ -216,6 +215,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
     ) # TODO make formats configurable
 
     for user in recipient:
+        recipients = []
         # get user profiles if available
         try:
             profile = user.get_profile()
