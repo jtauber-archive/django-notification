@@ -140,6 +140,10 @@ class Notice(models.Model):
         ordering = ["-added"]
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
+
+    @models.permalink
+    def get_absolute_url(self):
+        return ("notification_notice", [str(self.pk)])
     
 def create_notice_type(label, display, description, default=2):
     """
