@@ -202,13 +202,6 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         reverse("notification_notices"),
     )
     
-    context = Context({
-        "notice": ugettext(notice_type.display),
-        "notices_url": notices_url,
-        "current_site": current_site,
-    })
-    context.update(extra_context)
-
     current_language = get_language()
 
     formats = (
@@ -233,6 +226,14 @@ def send(recipient, label, extra_context={}, issue_notice=True):
             if language is not None:
                 # activate the user's language
                 activate(language)
+
+        # update context with user specific translations
+        context = Context({
+            "notice": ugettext(notice_type.display),
+            "notices_url": notices_url,
+            "current_site": current_site,
+        })
+        context.update(extra_context)
 
         # get prerendered format messages
         messages = get_formatted_messages(formats, label, context)
