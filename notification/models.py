@@ -216,7 +216,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         # get user profiles if available
         try:
             profile = user.get_profile()
-        except SiteProfileNotAvailable:
+        except (SiteProfileNotAvailable, AttributeError):
             profile = None
 
         # activate language of user to send message translated
