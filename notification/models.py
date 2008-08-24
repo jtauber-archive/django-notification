@@ -23,7 +23,7 @@ except ImportError:
 
 
 class NoticeType(models.Model):
-    
+
     label = models.CharField(_('label'), max_length=40)
     display = models.CharField(_('display'), max_length=50)
     description = models.CharField(_('description'), max_length=100)
@@ -33,7 +33,7 @@ class NoticeType(models.Model):
 
     def __unicode__(self):
         return self.label
-    
+
     class Meta:
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
@@ -54,12 +54,12 @@ class NoticeSetting(models.Model):
     Indicates, for a given user, whether to send notifications
     of a given type to a given medium.
     """
-    
+
     user = models.ForeignKey(User, verbose_name=_('user'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     medium = models.CharField(_('medium'), max_length=1, choices=NOTICE_MEDIA)
     send = models.BooleanField(_('send'))
-    
+
     class Meta:
         verbose_name = _("notice setting")
         verbose_name_plural = _("notice settings")
@@ -85,7 +85,7 @@ class NoticeManager(models.Manager):
 
         If archived=False, it only include notices not archived.
         If archived=True, it returns all notices for that user.
-        
+
         If unseen=None, it includes all notices.
         If unseen=True, return only unseen notices.
         If unseen=False, return only seen notices.
@@ -106,27 +106,27 @@ class NoticeManager(models.Manager):
         return self.filter(user=user, unseen=True).count()
 
 class Notice(models.Model):
-    
+
     user = models.ForeignKey(User, verbose_name=_('user'))
     message = models.TextField(_('message'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
     unseen = models.BooleanField(_('unseen'), default=True)
     archived = models.BooleanField(_('archived'), default=False)
-    
+
     objects = NoticeManager()
-    
+
     def __unicode__(self):
         return self.message
-    
+
     def archive(self):
         self.archived = True
         self.save()
-    
+
     def is_unseen(self):
         """
         returns value of self.unseen but also changes it to false.
-        
+
         Use this in a template to mark an unseen notice differently the first
         time it is shown.
         """
@@ -135,7 +135,7 @@ class Notice(models.Model):
             self.unseen = False
             self.save()
         return unseen
-    
+
     class Meta:
         ordering = ["-added"]
         verbose_name = _("notice")
@@ -144,11 +144,11 @@ class Notice(models.Model):
     @models.permalink
     def get_absolute_url(self):
         return ("notification_notice", [str(self.pk)])
-    
+
 def create_notice_type(label, display, description, default=2):
     """
     Creates a new NoticeType.
-    
+
     This is intended to be used by other apps as a post_syncdb manangement step.
     """
     try:
@@ -186,22 +186,22 @@ def get_formatted_messages(formats, label, context):
 def send(recipient, label, extra_context={}, issue_notice=True):
     """
     Creates a new notice.
-    
+
     This is intended to be how other apps create new notices.
-    
+
     notification.send(user, 'friends_invite_sent', {
         'spam': 'eggs',
         'foo': 'bar',
     )
     """
     notice_type = NoticeType.objects.get(label=label)
-    
+
     current_site = Site.objects.get_current()
     notices_url = u"http://%s%s" % (
         unicode(current_site),
         reverse("notification_notices"),
     )
-    
+
     current_language = get_language()
 
     formats = (
@@ -242,7 +242,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         subject = ''.join(render_to_string('notification/email_subject.txt', {
             'message': messages['short'],
         }, context).splitlines())
-        
+
         body = render_to_string('notification/email_body.txt', {
             'message': messages['plain'],
         }, context)
@@ -266,7 +266,7 @@ class ObservedItemManager(models.Manager):
         content_type = ContentType.objects.get_for_model(observed)
         observed_items = self.filter(content_type=content_type, object_id=observed.id, signal=signal)
         return observed_items
-    
+
     def get_for(self, observed, observer, signal):
         content_type = ContentType.objects.get_for_model(observed)
         observed_item = self.get(content_type=content_type, object_id=observed.id, user=observer, signal=signal)
@@ -276,39 +276,39 @@ class ObservedItemManager(models.Manager):
 class ObservedItem(models.Model):
 
     user = models.ForeignKey(User, verbose_name=_('user'))
-    
+
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     observed_object = generic.GenericForeignKey('content_type', 'object_id')
-    
+
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
-    message_template = models.TextField(verbose_name=_('message template'))
-    
+
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
-    
+
     # the signal that will be listened to send the notice
     signal = models.TextField(verbose_name=_('signal'))
-    
+
     objects = ObservedItemManager()
-    
+
     class Meta:
         ordering = ['-added']
         verbose_name = _('observed item')
         verbose_name_plural = _('observed items')
-    
+
     def send_notice(self):
-        send([self.user], self.notice_type.label, self.message_template,
-             [self.observed_object])
+        send([self.user], self.notice_type.label,
+             {'observed': self.observed_object})
 
 
-def observe(observed, observer, notice_type_label, message_template, signal='post_save'):
+def observe(observed, observer, notice_type_label, signal='post_save'):
     """
     Create a new ObservedItem.
-    
+
     To be used by applications to register a user as an observer for some object.
     """
     notice_type = NoticeType.objects.get(label=notice_type_label)
-    observed_item = ObservedItem(user=observer, observed_object=observed, notice_type=notice_type, message_template=message_template, signal=signal)
+    observed_item = ObservedItem(user=observer, observed_object=observed,
+                                 notice_type=notice_type, signal=signal)
     observed_item.save()
     return observed_item
 
