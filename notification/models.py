@@ -6,6 +6,8 @@ from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import render_to_string
 
+from django.core.exceptions import ObjectDoesNotExist
+
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User, SiteProfileNotAvailable
 
@@ -216,7 +218,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         # get user profiles if available
         try:
             profile = user.get_profile()
-        except (SiteProfileNotAvailable, AttributeError):
+        except (SiteProfileNotAvailable, AttributeError, ObjectDoesNotExist):
             profile = None
 
         # activate language of user to send message translated
