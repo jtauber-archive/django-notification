@@ -65,6 +65,7 @@ class NoticeSetting(models.Model):
     class Meta:
         verbose_name = _("notice setting")
         verbose_name_plural = _("notice settings")
+        unique_together = ("user", "notice_type", "medium")
 
 def get_notification_setting(user, notice_type, medium):
     try:
