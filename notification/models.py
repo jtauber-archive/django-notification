@@ -158,7 +158,7 @@ class Notice(models.Model):
     def get_absolute_url(self):
         return ("notification_notice", [str(self.pk)])
 
-class NoticeQueue(models.Model):
+class NoticeQueueBatch(models.Model):
     """
     A queued notice.
     Denormalized data for a notice.
@@ -288,7 +288,7 @@ def queue(users, label, extra_context={}, on_site=True):
     notices = []
     for user in users:
         notices.append((user, label, extra_context, on_site))
-    NoticeQueue(pickled_data=pickle.dumps(notices)).save()
+    NoticeQueueBatch(pickled_data=pickle.dumps(notices)).save()
 
 class ObservedItemManager(models.Manager):
 

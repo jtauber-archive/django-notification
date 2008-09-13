@@ -12,7 +12,7 @@ from django.contrib.auth.models import User
 
 from lockfile import FileLock, AlreadyLocked, LockTimeout
 
-from notification.models import NoticeQueue
+from notification.models import NoticeQueueBatch
 from notification import models as notification
 
 # lock timeout value. how long to wait for the lock to become available.
@@ -37,7 +37,7 @@ def send_all():
     start_time = time.time()
 
     try:
-        for queued_batch in NoticeQueue.objects.all():
+        for queued_batch in NoticeQueueBatch.objects.all():
             notices = pickle.loads(str(queued_batch.pickled_data))
             for user, label, extra_context, on_site in notices:
                 user = User.objects.get(pk=user)
