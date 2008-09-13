@@ -19,7 +19,7 @@ def feed_for_user(request):
 @login_required
 def notices(request):
     notice_types = NoticeType.objects.all()
-    notices = Notice.objects.notices_for(request.user)
+    notices = Notice.objects.notices_for(request.user, on_site=True)
     settings_table = []
     for notice_type in NoticeType.objects.all():
         settings_row = []
