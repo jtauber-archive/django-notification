@@ -82,7 +82,7 @@ def should_send(user, notice_type, medium):
 
 class NoticeManager(models.Manager):
 
-    def notices_for(self, user, archived=False, unseen=None):
+    def notices_for(self, user, archived=False, unseen=None, on_site=None):
         """
         returns Notice objects for the given user.
 
@@ -99,6 +99,8 @@ class NoticeManager(models.Manager):
             qs = self.filter(user=user, archived=archived)
         if unseen is not None:
             qs = qs.filter(unseen=unseen)
+        if on_site is not None:
+            qs = qs.filter(on_site=on_site)
         return qs
 
     def unseen_count_for(self, user):
@@ -116,6 +118,7 @@ class Notice(models.Model):
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
     unseen = models.BooleanField(_('unseen'), default=True)
     archived = models.BooleanField(_('archived'), default=False)
+    on_site = models.BooleanField(_('on site'))
 
     objects = NoticeManager()
 
@@ -186,7 +189,7 @@ def get_formatted_messages(formats, label, context):
             'notification/%s' % format), context)
     return format_templates
 
-def send(recipient, label, extra_context={}, issue_notice=True):
+def send(users, label, extra_context={}, on_site=True):
     """
     Creates a new notice.
 
@@ -196,6 +199,9 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         'spam': 'eggs',
         'foo': 'bar',
     )
+    
+    You can pass in on_site=False to prevent the notice emitted from being
+    displayed on the site.
     """
     notice_type = NoticeType.objects.get(label=label)
 
@@ -214,7 +220,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
         'full.html',
     ) # TODO make formats configurable
 
-    for user in recipient:
+    for user in users:
         recipients = []
         # get user profiles if available
         try:
@@ -251,8 +257,8 @@ def send(recipient, label, extra_context={}, issue_notice=True):
             'message': messages['plain'],
         }, context)
 
-        if issue_notice:
-            notice = Notice.objects.create(user=user, message=messages['teaser'], notice_type=notice_type)
+        notice = Notice.objects.create(user=user, message=messages['teaser'],
+            notice_type=notice_type, on_site=on_site)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients)
