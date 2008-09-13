@@ -1,6 +1,13 @@
 import datetime
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
 from django.db import models
+from django.db.models.query import QuerySet
+from django.db import connection
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.template import Context
@@ -151,6 +158,13 @@ class Notice(models.Model):
     def get_absolute_url(self):
         return ("notification_notice", [str(self.pk)])
 
+class NoticeQueue(models.Model):
+    """
+    A queued notice.
+    Denormalized data for a notice.
+    """
+    pickled_data = models.TextField()
+
 def create_notice_type(label, display, description, default=2):
     """
     Creates a new NoticeType.
@@ -265,6 +279,16 @@ def send(users, label, extra_context={}, on_site=True):
 
     # reset environment to original language
     activate(current_language)
+
+def queue(users, label, extra_context={}, on_site=True):
+    if isinstance(users, QuerySet):
+        users = [row["pk"] for row in users.values("pk")]
+    else:
+        users = [user.pk for user in users]
+    notices = []
+    for user in users:
+        notices.append((user, label, extra_context, on_site))
+    NoticeQueue(pickled_data=pickle.dumps(notices)).save()
 
 class ObservedItemManager(models.Manager):
 
