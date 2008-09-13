@@ -232,6 +232,7 @@ def send(recipient, label, extra_context={}, issue_notice=True):
 
         # update context with user specific translations
         context = Context({
+            "user": user,
             "notice": ugettext(notice_type.display),
             "notices_url": notices_url,
             "current_site": current_site,
