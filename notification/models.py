@@ -17,6 +17,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User, SiteProfileNotAvailable
+from django.contrib.auth.models import AnonymousUser
 
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes import generic
@@ -363,6 +364,8 @@ def send_observation_notices_for(observed, signal='post_save'):
     return observed_items
 
 def is_observing(observed, observer, signal='post_save'):
+    if isinstance(observer, AnonymousUser):
+        return False
     try:
         observed_items = ObservedItem.objects.get_for(observed, observer, signal)
         return True
