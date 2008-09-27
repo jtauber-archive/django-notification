@@ -7,16 +7,15 @@ except ImportError:
 
 from django.db import models
 from django.db.models.query import QuerySet
-from django.db import connection
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import render_to_string
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ImproperlyConfigured
 
 from django.contrib.sites.models import Site
-from django.contrib.auth.models import User, SiteProfileNotAvailable
+from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 
 from django.contrib.contenttypes.models import ContentType
@@ -31,6 +30,8 @@ try:
 except ImportError:
     from django.core.mail import send_mail
 
+class LanguageStoreNotAvailable(Exception):
+    pass
 
 class NoticeType(models.Model):
 
@@ -191,6 +192,23 @@ def create_notice_type(label, display, description, default=2):
         NoticeType(label=label, display=display, description=description, default=default).save()
         print "Created %s NoticeType" % label
 
+def get_notification_language(user):
+    """
+    Returns site-specific notification language for this user. Raises
+    LanguageStoreNotAvailable if this site does not use translated
+    notifications.
+    """
+    if getattr(settings, 'NOTIFICATION_LANGUAGE_MODULE', False):
+        try:
+            app_label, model_name = settings.NOTIFICATION_LANGUAGE_MODULE.split('.')
+            model = models.get_model(app_label, model_name)
+            language_model = model._default_manager.get(user__id__exact=user.id)
+            if hasattr(language_model, 'language'):
+                return language_model.language
+        except (ImportError, ImproperlyConfigured, model.DoesNotExist):
+            raise LanguageStoreNotAvailable
+    raise LanguageStoreNotAvailable
+
 def get_formatted_messages(formats, label, context):
     """
     Returns a dictionary with the format identifier as the key. The values are
@@ -237,19 +255,16 @@ def send(users, label, extra_context={}, on_site=True):
 
     for user in users:
         recipients = []
-        # get user profiles if available
+        # get user language for user from language store defined in
+        # NOTIFICATION_LANGUAGE_MODULE setting
         try:
-            profile = user.get_profile()
-        except (SiteProfileNotAvailable, AttributeError, ObjectDoesNotExist):
-            profile = None
+            language = get_notification_language(user)
+        except LanguageStoreNotAvailable:
+            language = None
 
-        # activate language of user to send message translated
-        if profile is not None:
-            # get language attribute of user profile
-            language = getattr(profile, "language", None)
-            if language is not None:
-                # activate the user's language
-                activate(language)
+        if language is not None:
+            # activate the user's language
+            activate(language)
 
         # update context with user specific translations
         context = Context({
