@@ -216,6 +216,9 @@ def get_formatted_messages(formats, label, context):
     """
     format_templates = {}
     for format in formats:
+        # conditionally turn off autoescaping for .txt extensions in format
+        if format.endswith(".txt"):
+            context.autoescape = False
         name = format.split(".")[0]
         format_templates[name] = render_to_string((
             'notification/%s/%s' % (label, format),
