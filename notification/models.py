@@ -219,7 +219,7 @@ def get_formatted_messages(formats, label, context):
         name = format.split(".")[0]
         format_templates[name] = render_to_string((
             'notification/%s/%s' % (label, format),
-            'notification/%s' % format), context)
+            'notification/%s' % format), context_instance=context)
     return format_templates
 
 def send(users, label, extra_context={}, on_site=True):
