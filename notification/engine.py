@@ -44,7 +44,7 @@ def send_all():
                 logging.info("emitting notice to %s" % user)
                 # call this once per user to be atomic and allow for logging to
                 # accurately show how long each takes.
-                notification.send([user], label, extra_context, on_site)
+                notification.send_now([user], label, extra_context, on_site)
                 sent += 1
             queued_batch.delete()
             batches += 1
