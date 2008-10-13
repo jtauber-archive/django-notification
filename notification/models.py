@@ -225,7 +225,7 @@ def get_formatted_messages(formats, label, context):
             'notification/%s' % format), context_instance=context)
     return format_templates
 
-def send(users, label, extra_context={}, on_site=True):
+def send(users, label, extra_context=None, on_site=True):
     """
     Creates a new notice.
 
@@ -239,6 +239,9 @@ def send(users, label, extra_context={}, on_site=True):
     You can pass in on_site=False to prevent the notice emitted from being
     displayed on the site.
     """
+    if extra_context is None:
+        extra_context = {}
+    
     notice_type = NoticeType.objects.get(label=label)
 
     current_site = Site.objects.get_current()
@@ -299,7 +302,14 @@ def send(users, label, extra_context={}, on_site=True):
     # reset environment to original language
     activate(current_language)
 
-def queue(users, label, extra_context={}, on_site=True):
+def queue(users, label, extra_context=None, on_site=True):
+    """
+    A basic interface around send. Checks NOTIFICATION_QUEUE_ALL to determine
+    behavior, but queue function argument can override global behavior on a
+    per call basis.
+    """
+    if extra_context is None:
+        extra_context = {}
     if isinstance(users, QuerySet):
         users = [row["pk"] for row in users.values("pk")]
     else:
