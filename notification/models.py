@@ -304,9 +304,9 @@ def send(users, label, extra_context=None, on_site=True):
 
 def queue(users, label, extra_context=None, on_site=True):
     """
-    A basic interface around send. Checks NOTIFICATION_QUEUE_ALL to determine
-    behavior, but queue function argument can override global behavior on a
-    per call basis.
+    Queue the notification in NoticeQueueBatch. This allows for large amounts
+    of user notifications to be deferred to a seperate process running outside
+    the webserver.
     """
     if extra_context is None:
         extra_context = {}
