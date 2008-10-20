@@ -41,31 +41,68 @@ Here is an example::
 Notice that the code is wrapped in a try clause so if django-notification is
 not installed, your app will proceed anyway.
 
+Notification templates
+======================
+
+TODO: write this section.
+
 Sending Notification
 ====================
 
-To send a message you use ``send(users, notice_type_label, message_template, object_list, issue_notice)``
-where ``object_list`` and ``issue_notice`` are optional.
+There are two different ways of sending out notifications. We have support
+for blocking and non-blocking methods of sending notifications. The most
+simple way to send out a notification, for example::
 
-``users`` is a list of the users who should receive the notice.
-``notice_type_label`` is the label you used in the previous step to identify
-the notice type. ``message_template`` is just a string, however if ``object_list``
-is non-empty, then ``message_template`` should contain as many ``%s`` as there
-are objects in ``object_list``. These will be replaced by references to the
-corresponding objects in ``object_list``.
+    notification.send([to_user], "friends_invite", {"from_user": from_user})
 
-For example::
+One thing to note is that ``send`` is a proxy around either ``send_now`` or
+``queue``. They all have the same signature::
 
-    notification.send([to_user], "friends_invite", "%s has requested to add you as a friend.", [from_user])
+    send(users, label, extra_context, on_site)
 
-will sent a ``friend_invite`` notice to ``to_user`` with the message
-``XXX has requested to add you as a friend.`` where XXX is a reference to the
-``from_user`` object. Depending on the notification medium, this reference may
-be a link or just plain text.
+The parameters are:
 
-``issue_notice`` is ``True`` by default but you can set it to ``False`` if you
-want a notification sent but not persisted as a ``Notice`` object in the
-database.
+ * ``users`` is an iterable of ``User`` objects to send the notification to.
+ * ``label`` is the label you used in the previous step to identify the notice
+   type.
+ * ``extra_content`` is a dictionary to add custom context entries to the
+   template used to render to notification. This is optional.
+ * ``on_site`` is a boolean flag to determine whether an ``Notice`` object is
+   created in the database.
+
+``send_now`` vs. ``queue`` vs. ``send``
+---------------------------------------
+
+Lets first break down what each does.
+
+``send_now``
+~~~~~~~~~~~~
+
+This is a blocking call that will check each user for elgibility of the
+notice and actually peform the send.
+
+``queue``
+~~~~~~~~~
+
+This is a non-blocking call that will queue the call to ``send_now`` to
+be executed at a later time. To later execute the call you need to use
+the ``emit_notices`` management command.
+
+``send``
+~~~~~~~~
+
+A proxy around ``send_now`` and ``queue``. It gets its behavior from a global
+setting named ``NOTIFICATION_QUEUE_ALL``. By default it is ``False``. This
+setting is meant to help control whether you want to queue any call to
+``send``.
+
+``send`` also accepts ``now`` and ``queue`` keyword arguments. By default
+each option is set to ``False`` to honor the global setting which is ``False``.
+This enables you to override on a per call basis whether it should call
+``send_now`` or ``queue``.
+
+Optional notification support
+-----------------------------
 
 To allow your app to still function without notification, you can wrap your
 import in a try clause and test that the module has been loaded before sending
@@ -81,4 +118,4 @@ For example::
 and then, later:
 
     if notification:
-        notification.send([to_user], "friends_invite", "%s has requested to add you as a friend.", [from_user])
+        notification.send([to_user], "friends_invite", {"from_user": from_user})
