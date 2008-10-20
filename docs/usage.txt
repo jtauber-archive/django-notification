@@ -46,14 +46,15 @@ not installed, your app will proceed anyway.
 Notification templates
 ======================
 
-There are four different templates that need to be written for the actual content of the notices:
+There are four different templates that can to be written for the actual content of the notices:
 
   * ``short.txt`` is a very short, text-only version of the notice (suitable for things like email subjects)
   * ``full.txt`` is a longer, text-only version of the notice (suitable for things like email bodies)
   * ``notice.html`` is a short, html version of the notice, displayed in a user's notice list on the website
   * ``full.html`` is a long, html version of the notice (not currently used for anything)
 
-Each of these should be put in a directory on the template path called ``notification/`notice_type_label`/``.
+Each of these should be put in a directory on the template path called ``notification/``notice_type_label``/``template_name.
+If any of these are missing, a default would be used. In practice, ``notice.html`` and ``full.txt`` should be provided at a minimum.
 
 For example, ``notification/friends_invite/notice.html`` might contain::
     
@@ -66,6 +67,8 @@ and ``notification/friends_full.txt`` might contain::
     
     http://{{ current_site }}{{ invitation_page }}
     {% endblocktrans %}
+
+The context variables are provided when sending the notification.
 
 
 Sending Notification
