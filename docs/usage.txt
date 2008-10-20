@@ -1,0 +1,84 @@
+
+=====
+Usage
+=====
+
+Integrating notification support into your app is a simple two-step process.
+
+  * create your notice types
+  * send notifications
+
+Creating Notice Types
+=====================
+
+You need to call ``create_notice_type(label, display, description)`` once to
+create the notice types for your application in the database. ``label`` is just
+the internal shortname that will be used for the type, ``display`` is what the
+user will see as the name of the notification type and `description` is a
+short description.
+
+For example::
+
+    notification.create_notice_type("friends_invite", "Invitation Received", "you have received an invitation")
+
+One good way to automatically do this notice type creation is in a
+``management.py`` file for your app, attached to the syncdb signal.
+Here is an example::
+
+    from django.db.models import signals
+
+    try:
+        from notification import models as notification
+    
+        def create_notice_types(app, created_models, verbosity, **kwargs):
+            notification.create_notice_type("friends_invite", "Invitation Received", "you have received an invitation")
+            notification.create_notice_type("friends_accept", "Acceptance Received", "an invitation you sent has been accepted")
+    
+        signals.post_syncdb.connect(create_notice_types, sender=notification)
+    except ImportError:
+        print "Skipping creation of NoticeTypes as notification app not found"
+
+Notice that the code is wrapped in a try clause so if django-notification is
+not installed, your app will proceed anyway.
+
+Sending Notification
+====================
+
+To send a message you use ``send(users, notice_type_label, message_template, object_list, issue_notice)``
+where ``object_list`` and ``issue_notice`` are optional.
+
+``users`` is a list of the users who should receive the notice.
+``notice_type_label`` is the label you used in the previous step to identify
+the notice type. ``message_template`` is just a string, however if ``object_list``
+is non-empty, then ``message_template`` should contain as many ``%s`` as there
+are objects in ``object_list``. These will be replaced by references to the
+corresponding objects in ``object_list``.
+
+For example::
+
+    notification.send([to_user], "friends_invite", "%s has requested to add you as a friend.", [from_user])
+
+will sent a ``friend_invite`` notice to ``to_user`` with the message
+``XXX has requested to add you as a friend.`` where XXX is a reference to the
+``from_user`` object. Depending on the notification medium, this reference may
+be a link or just plain text.
+
+``issue_notice`` is ``True`` by default but you can set it to ``False`` if you
+want a notification sent but not persisted as a ``Notice`` object in the
+database.
+
+To allow your app to still function without notification, you can wrap your
+import in a try clause and test that the module has been loaded before sending
+a notice.
+
+For example::
+
+    try:
+        from notification import models as notification
+    except ImportError:
+        notification = None
+
+and then, later:
+
+    if notification:
+        notification.send([to_user], "friends_invite", "%s has requested to add you as a friend.", [from_user])
