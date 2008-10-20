@@ -221,8 +221,7 @@ def get_formatted_messages(formats, label, context):
         # conditionally turn off autoescaping for .txt extensions in format
         if format.endswith(".txt"):
             context.autoescape = False
-        name = format.split(".")[0]
-        format_templates[name] = render_to_string((
+        format_templates[format] = render_to_string((
             'notification/%s/%s' % (label, format),
             'notification/%s' % format), context_instance=context)
     return format_templates
@@ -256,8 +255,8 @@ def send_now(users, label, extra_context=None, on_site=True):
 
     formats = (
         'short.txt',
-        'plain.txt',
-        'teaser.html',
+        'full.txt',
+        'notice.html',
         'full.html',
     ) # TODO make formats configurable
 
@@ -288,14 +287,14 @@ def send_now(users, label, extra_context=None, on_site=True):
 
         # Strip newlines from subject
         subject = ''.join(render_to_string('notification/email_subject.txt', {
-            'message': messages['short'],
+            'message': messages['short.txt'],
         }, context).splitlines())
 
         body = render_to_string('notification/email_body.txt', {
-            'message': messages['plain'],
+            'message': messages['full.txt'],
         }, context)
 
-        notice = Notice.objects.create(user=user, message=messages['teaser'],
+        notice = Notice.objects.create(user=user, message=messages['notice.html'],
             notice_type=notice_type, on_site=on_site)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
