@@ -140,7 +140,7 @@ For example::
     except ImportError:
         notification = None
 
-and then, later:
+and then, later::
 
     if notification:
         notification.send([to_user], "friends_invite", {"from_user": from_user})
