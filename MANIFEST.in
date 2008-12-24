@@ -1,0 +1,3 @@
+include AUTHORS
+recursive-include docs *
+recursive-include notification/templates/notification *
