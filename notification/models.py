@@ -169,7 +169,7 @@ class NoticeQueueBatch(models.Model):
     """
     pickled_data = models.TextField()
 
-def create_notice_type(label, display, description, default=2):
+def create_notice_type(label, display, description, default=2, verbosity=1):
     """
     Creates a new NoticeType.
 
@@ -189,10 +189,12 @@ def create_notice_type(label, display, description, default=2):
             updated = True
         if updated:
             notice_type.save()
-            print "Updated %s NoticeType" % label
+            if verbosity > 1:
+                print "Updated %s NoticeType" % label
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description, default=default).save()
-        print "Created %s NoticeType" % label
+        if verbosity > 1:
+            print "Created %s NoticeType" % label
 
 def get_notification_language(user):
     """
