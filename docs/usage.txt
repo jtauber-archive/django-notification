@@ -26,17 +26,18 @@ One good way to automatically do this notice type creation is in a
 ``management.py`` file for your app, attached to the syncdb signal.
 Here is an example::
 
-    from django.db.models import signals
+    from django.db.models import signals, get_app
+    from django.core.exceptions import ImproperlyConfigured
 
     try:
-        from notification import models as notification
+        notification = get_app("notification")
     
         def create_notice_types(app, created_models, verbosity, **kwargs):
             notification.create_notice_type("friends_invite", "Invitation Received", "you have received an invitation")
             notification.create_notice_type("friends_accept", "Acceptance Received", "an invitation you sent has been accepted")
     
         signals.post_syncdb.connect(create_notice_types, sender=notification)
-    except ImportError:
+    except ImproperlyConfigured:
         print "Skipping creation of NoticeTypes as notification app not found"
 
 Notice that the code is wrapped in a try clause so if django-notification is
@@ -135,9 +136,12 @@ a notice.
 
 For example::
 
+    from django.db.models import get_app
+    from django.core.exceptions import ImproperlyConfigured
+
     try:
-        from notification import models as notification
-    except ImportError:
+        notification = get_app('notification')
+    except ImproperlyConfigured:
         notification = None
 
 and then, later::
