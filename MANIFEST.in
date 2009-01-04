@@ -1,0 +1,4 @@
+include AUTHORS
+include LICENSE
+recursive-include docs *
+recursive-include notification/templates/notification *

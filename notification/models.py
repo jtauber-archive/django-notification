@@ -27,6 +27,15 @@ from django.utils.translation import ugettext, get_language, activate
 from notification import backends
 from notification.message import encode_message
 
+# favour django-mailer but fall back to django.core.mail
+try:
+    mailer = models.get_app("mailer")
+    from mailer import send_mail
+except ImproperlyConfigured:
+    from django.core.mail import send_mail
+
+QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
+
 class LanguageStoreNotAvailable(Exception):
     pass
 
@@ -165,7 +174,7 @@ class NoticeQueueBatch(models.Model):
     """
     pickled_data = models.TextField()
 
-def create_notice_type(label, display, description, default=2):
+def create_notice_type(label, display, description, default=2, verbosity=1):
     """
     Creates a new NoticeType.
 
@@ -185,10 +194,12 @@ def create_notice_type(label, display, description, default=2):
             updated = True
         if updated:
             notice_type.save()
-            print "Updated %s NoticeType" % label
+            if verbosity > 1:
+                print "Updated %s NoticeType" % label
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description, default=default).save()
-        print "Created %s NoticeType" % label
+        if verbosity > 1:
+            print "Created %s NoticeType" % label
 
 def get_notification_language(user):
     """
@@ -217,13 +228,12 @@ def get_formatted_messages(formats, label, context):
         # conditionally turn off autoescaping for .txt extensions in format
         if format.endswith(".txt"):
             context.autoescape = False
-        name = format.split(".")[0]
-        format_templates[name] = render_to_string((
+        format_templates[format] = render_to_string((
             'notification/%s/%s' % (label, format),
             'notification/%s' % format), context_instance=context)
     return format_templates
 
-def send(users, label, extra_context={}, on_site=True):
+def send_now(users, label, extra_context=None, on_site=True):
     """
     Creates a new notice.
 
@@ -239,6 +249,9 @@ def send(users, label, extra_context={}, on_site=True):
     
     FIXME: this function needs some serious reworking.
     """
+    if extra_context is None:
+        extra_context = {}
+    
     notice_type = NoticeType.objects.get(label=label)
 
     notice_type = NoticeType.objects.get(label=label)
@@ -254,8 +267,8 @@ def send(users, label, extra_context={}, on_site=True):
 
     formats = (
         'short.txt',
-        'plain.txt',
-        'teaser.html',
+        'full.txt',
+        'notice.html',
         'full.html',
     ) # TODO make formats configurable
 
@@ -288,14 +301,14 @@ def send(users, label, extra_context={}, on_site=True):
         # Strip newlines from subject
         # TODO: this should move to the email backend
         subject = ''.join(render_to_string('notification/email_subject.txt', {
-            'message': messages['short'],
+            'message': messages['short.txt'],
         }, context).splitlines())
 
         body = render_to_string('notification/email_body.txt', {
-            'message': messages['plain'],
+            'message': messages['full.txt'],
         }, context)
         
-        notice = Notice.objects.create(user=user, message=messages['teaser'],
+        notice = Notice.objects.create(user=user, message=messages['notice.html'],
             notice_type=notice_type, on_site=on_site)
         for key, backend in NOTIFICATION_BACKENDS:
             recipients = backend_recipients.setdefault(key, [])
@@ -307,7 +320,34 @@ def send(users, label, extra_context={}, on_site=True):
     # reset environment to original language
     activate(current_language)
 
-def queue(users, label, extra_context={}, on_site=True):
+def send(*args, **kwargs):
+    """
+    A basic interface around both queue and send_now. This honors a global
+    flag NOTIFICATION_QUEUE_ALL that helps determine whether all calls should
+    be queued or not. A per call ``queue`` or ``now`` keyword argument can be
+    used to always override the default global behavior.
+    """
+    queue_flag = kwargs.pop("queue", False)
+    now_flag = kwargs.pop("now", False)
+    assert not (queue_flag and now_flag), "'queue' and 'now' cannot both be True."
+    if queue_flag:
+        return queue(*args, **kwargs)
+    elif now_flag:
+        return send_now(*args, **kwargs)
+    else:
+        if QUEUE_ALL:
+            return queue(*args, **kwargs)
+        else:
+            return send_now(*args, **kwargs)
+        
+def queue(users, label, extra_context=None, on_site=True):
+    """
+    Queue the notification in NoticeQueueBatch. This allows for large amounts
+    of user notifications to be deferred to a seperate process running outside
+    the webserver.
+    """
+    if extra_context is None:
+        extra_context = {}
     if isinstance(users, QuerySet):
         users = [row["pk"] for row in users.values("pk")]
     else:
@@ -315,7 +355,7 @@ def queue(users, label, extra_context={}, on_site=True):
     notices = []
     for user in users:
         notices.append((user, label, extra_context, on_site))
-    NoticeQueueBatch(pickled_data=pickle.dumps(notices)).save()
+    NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
 class ObservedItemManager(models.Manager):
 
