@@ -1,17 +1,20 @@
 
 from django.conf import settings
+from django.db.models.loading import get_app
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
 
 from notification import backends
 from notification.message import message_to_text
 
 # favour django-mailer but fall back to django.core.mail
 try:
+    mailer = get_app("mailer")
     from mailer import send_mail
-except ImportError:
+except ImproperlyConfigured:
     from django.core.mail import send_mail
 
 
