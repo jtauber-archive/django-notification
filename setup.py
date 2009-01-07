@@ -12,7 +12,6 @@ setup(
         'notification',
         'notification.management',
         'notification.management.commands',
-        'notification.templatetags',
     ],
     package_dir={'notification': 'notification'},
     classifiers=[
