@@ -28,4 +28,4 @@ def load_backends():
         # backends list.
         backend_instance = getattr(backend_mod, backend_class)(label, spam_sensitivity)
         backends.append(label, backend_instance)
-    return dict(backend_list)
+    return dict(backends)
