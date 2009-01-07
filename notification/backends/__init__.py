@@ -6,9 +6,14 @@ from django.core import exceptions
 
 from base import BaseBackend
 
+# mostly for backend compatibility
+default_backends = (
+    ("email", "notification.backends.email.EmailBackend"),
+)
+
 def load_backends():
     backends = []
-    for bits in getattr(settings, "NOTIFICATION_BACKENDS", tuple()):
+    for bits in getattr(settings, "NOTIFICATION_BACKENDS", default_backends):
         if len(bits) == 2:
             label, backend_path = bits
             spam_sensitivity = None
