@@ -24,18 +24,34 @@ class EmailBackend(backends.BaseBackend):
             return True
         return False
         
-    def deliver(self, recipients, notice_type, message):
+    def deliver(self, recipient, notice_type, extra_context):
+        # TODO: require this to be passed in extra_context
+        current_site = Site.objects.get_current()
         notices_url = u"http://%s%s" % (
             unicode(Site.objects.get_current()),
             reverse("notification_notices"),
         )
-        subject = render_to_string("notification/notification_subject.txt", {
-            "display": ugettext(notice_type.display),
-        })
-        message_body = render_to_string("notification/notification_body.txt", {
-            "message": message_to_text(message),
+        
+        # update context with user specific translations
+        context = Context({
+            "user": recipient,
+            "notice": ugettext(notice_type.display),
             "notices_url": notices_url,
-            "contact_email": settings.CONTACT_EMAIL,
+            "current_site": current_site,
         })
-        send_mail(subject, message_body,
-            settings.DEFAULT_FROM_EMAIL, recipients)
+        context.update(extra_context)
+        
+        messages = self.get_formatted_messages((
+            "short.txt",
+            "full.txt"
+        ), notice_type.label, context)
+        
+        subject = "".join(render_to_string("notification/email_subject.txt", {
+            "message": messages["short.txt"],
+        }, context).splitlines())
+        
+        body = render_to_string("notification/email_body.txt", {
+            "message": messages["full.txt"],
+        }, context)
+        
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])

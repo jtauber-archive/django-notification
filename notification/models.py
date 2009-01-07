@@ -218,62 +218,24 @@ def get_notification_language(user):
             raise LanguageStoreNotAvailable
     raise LanguageStoreNotAvailable
 
-def get_formatted_messages(formats, label, context):
-    """
-    Returns a dictionary with the format identifier as the key. The values are
-    are fully rendered templates with the given context.
-    """
-    format_templates = {}
-    for format in formats:
-        # conditionally turn off autoescaping for .txt extensions in format
-        if format.endswith(".txt"):
-            context.autoescape = False
-        format_templates[format] = render_to_string((
-            'notification/%s/%s' % (label, format),
-            'notification/%s' % format), context_instance=context)
-    return format_templates
-
 def send_now(users, label, extra_context=None, on_site=True):
     """
-    Creates a new notice.
-
-    This is intended to be how other apps create new notices.
-
-    notification.send(user, 'friends_invite_sent', {
-        'spam': 'eggs',
-        'foo': 'bar',
-    )
+    Sends a notifications to the given users and configured based on the
+    arguments passed in. Example usage::
     
-    You can pass in on_site=False to prevent the notice emitted from being
-    displayed on the site.
-    
-    FIXME: this function needs some serious reworking.
+        notification.send([user], "friends_invite_sent", {
+            "spam": "eggs",
+            "foo": "bar",
+        })
     """
     if extra_context is None:
         extra_context = {}
     
     notice_type = NoticeType.objects.get(label=label)
-
-    notice_type = NoticeType.objects.get(label=label)
-    backend_recipients = {}
     
-    current_site = Site.objects.get_current()
-    notices_url = u"http://%s%s" % (
-        unicode(current_site),
-        reverse("notification_notices"),
-    )
-
     current_language = get_language()
-
-    formats = (
-        'short.txt',
-        'full.txt',
-        'notice.html',
-        'full.html',
-    ) # TODO make formats configurable
-
+    
     for user in users:
-        recipients = []
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
         try:
@@ -284,41 +246,14 @@ def send_now(users, label, extra_context=None, on_site=True):
         if language is not None:
             # activate the user's language
             activate(language)
-
-        # update context with user specific translations
-        context = Context({
-            "user": user,
-            "notice": ugettext(notice_type.display),
-            "notices_url": notices_url,
-            "current_site": current_site,
-        })
-        context.update(extra_context)
-
-        # get prerendered format messages
-        # TODO: figure out how to handle this in the branch.
-        messages = get_formatted_messages(formats, label, context)
-
-        # Strip newlines from subject
-        # TODO: this should move to the email backend
-        subject = ''.join(render_to_string('notification/email_subject.txt', {
-            'message': messages['short.txt'],
-        }, context).splitlines())
-
-        body = render_to_string('notification/email_body.txt', {
-            'message': messages['full.txt'],
-        }, context)
         
-        notice = Notice.objects.create(user=user, message=messages['notice.html'],
-            notice_type=notice_type, on_site=on_site)
         for key, backend in NOTIFICATION_BACKENDS:
-            recipients = backend_recipients.setdefault(key, [])
             if backend.can_send(user, notice_type):
-                recipients.append(user)
-    for key, backend in NOTIFICATION_BACKENDS:
-        backend.deliver(backend_recipients[key], notice_type, message)
-
+                backend.deliver(user, notice_type, extra_context)
+    
     # reset environment to original language
     activate(current_language)
+
 
 def send(*args, **kwargs):
     """
@@ -340,6 +275,7 @@ def send(*args, **kwargs):
         else:
             return send_now(*args, **kwargs)
         
+
 def queue(users, label, extra_context=None, on_site=True):
     """
     Queue the notification in NoticeQueueBatch. This allows for large amounts
@@ -356,6 +292,7 @@ def queue(users, label, extra_context=None, on_site=True):
     for user in users:
         notices.append((user, label, extra_context, on_site))
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
+
 
 class ObservedItemManager(models.Manager):
 
