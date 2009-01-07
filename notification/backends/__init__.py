@@ -31,6 +31,6 @@ def load_backends():
             raise exceptions.ImproperlyConfigured, 'Error importing notification backend %s: "%s"' % (backend_mod, e)
         # add the backend label and an instantiated backend class to the
         # backends list.
-        backend_instance = getattr(backend_mod, backend_class)(label, spam_sensitivity)
-        backends.append(label, backend_instance)
+        backend_instance = getattr(mod, backend_class)(label, spam_sensitivity)
+        backends.append((label, backend_instance))
     return dict(backends)
