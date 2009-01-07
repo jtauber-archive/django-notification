@@ -5,6 +5,9 @@ class BaseBackend(object):
     """
     The base backend.
     """
+    def __init__(self, label):
+        self.label = label
+    
     def can_send(self, user, notice_type):
         """
         Determines whether this backend is allowed to send a notification to

@@ -19,8 +19,10 @@ except ImproperlyConfigured:
 
 
 class EmailBackend(backends.BaseBackend):
+    spam_sensitivity = 2
+    
     def can_send(self, user, notice_type):
-        if should_send(user, notice_type, "1") and user.email:
+        if should_send(user, notice_type, self.label) and user.email:
             return True
         return False
         

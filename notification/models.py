@@ -56,15 +56,13 @@ class NoticeType(models.Model):
         verbose_name_plural = _("notice types")
 
 NOTIFICATION_BACKENDS = backends.load_backends()
-NOTICE_MEDIA = tuple(
-    ((i, backend_label) for i, backend_label in enumerate(NOTIFICATION_BACKENDS.keys()))
-)
 
-# how spam-sensitive is the medium
-# TODO: fix this with the backends
-NOTICE_MEDIA_DEFAULTS = {
-    "1": 2 # email
-}
+NOTICE_MEDIA = []
+NOTICE_MEDIA_DEFAULTS = {}
+for i, items in enumerate(NOTIFICATION_BACKENDS.items()):
+    backend_label, backend = items
+    NOTICE_MEDIA.append((i, backend_label))
+    NOTICE_MEDIA_DEFAULTS[backend_label] = backend.spam_sensitivity
 
 class NoticeSetting(models.Model):
     """
