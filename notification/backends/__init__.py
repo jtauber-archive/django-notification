@@ -8,7 +8,14 @@ from base import BaseBackend
 
 def load_backends():
     backends = []
-    for label, backend_path in getattr(settings, "NOTIFICATION_BACKENDS", tuple()):
+    for bits in getattr(settings, "NOTIFICATION_BACKENDS", tuple()):
+        if len(bits) == 2:
+            label, backend_path = bits
+            spam_sensitivity = None
+        elif len(bits) == 3:
+            label, backend_path, spam_sensitivity = bits
+        else:
+            raise exceptions.ImproperlyConfigured, "NOTIFICATION_BACKENDS does not contain enough data."
         dot = backend_path.rindex(".")
         backend_mod, backend_class = backend_path[:dot], backend_path[dot+1:]
         try:
@@ -19,5 +26,6 @@ def load_backends():
             raise exceptions.ImproperlyConfigured, 'Error importing notification backend %s: "%s"' % (backend_mod, e)
         # add the backend label and an instantiated backend class to the
         # backends list.
-        backends.append(label, getattr(backend_mod, backend_class)(label))
+        backend_instance = getattr(backend_mod, backend_class)(label, spam_sensitivity)
+        backends.append(label, backend_instance)
     return dict(backend_list)

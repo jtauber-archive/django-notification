@@ -5,8 +5,10 @@ class BaseBackend(object):
     """
     The base backend.
     """
-    def __init__(self, label):
+    def __init__(self, label, spam_sensitivity=None):
         self.label = label
+        if spam_sensitivity is not None:
+            self.spam_sensitivity = spam_sensitivity
     
     def can_send(self, user, notice_type):
         """
