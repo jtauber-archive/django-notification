@@ -139,7 +139,7 @@ For example::
 
     if "notification" in settings.INSTALLED_APPS:
         from notification import models as notification
-    except ImproperlyConfigured:
+    else:
         notification = None
 
 and then, later::
