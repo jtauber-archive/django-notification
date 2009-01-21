@@ -44,7 +44,7 @@ Notice that the code is wrapped in a conditional clause so if
 django-notification is not installed, your app will proceed anyway.
 
 Note that the display and description arguments are marked for translation by
-using ugettext_noop. That will enable you to use Django's makemessage
+using ugettext_noop. That will enable you to use Django's makemessages
 management command and use django-notification's i18n capabilities.
 
 Notification templates
