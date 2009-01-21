@@ -39,9 +39,8 @@ Here is an example::
     else:
         print "Skipping creation of NoticeTypes as notification app not found"
 
-Notice that the code is wrapped in a conditional claus so if
+Notice that the code is wrapped in a conditional clause so if
 django-notification is not installed, your app will proceed anyway.
-
 
 Notification templates
 ======================
