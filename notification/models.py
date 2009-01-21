@@ -25,8 +25,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext, get_language, activate
 
 # favour django-mailer but fall back to django.core.mail
-if 'mailer' in settings.INSTALLED_APPS
-    from mailer import send_mail:
+if 'mailer' in settings.INSTALLED_APPS:
+    from mailer import send_mail
 else:
     from django.core.mail import send_mail
 
