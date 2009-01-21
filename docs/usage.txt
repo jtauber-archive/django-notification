@@ -26,22 +26,21 @@ One good way to automatically do this notice type creation is in a
 ``management.py`` file for your app, attached to the syncdb signal.
 Here is an example::
 
-    from django.db.models import signals, get_app
-    from django.core.exceptions import ImproperlyConfigured
+    from django.conf import settings
 
-    try:
-        notification = get_app("notification")
+    if "notification" in settings.INSTALLED_APPS:
+        from notification.models import create_notice_type
     
         def create_notice_types(app, created_models, verbosity, **kwargs):
-            notification.create_notice_type("friends_invite", "Invitation Received", "you have received an invitation")
-            notification.create_notice_type("friends_accept", "Acceptance Received", "an invitation you sent has been accepted")
+            create_notice_type("friends_invite", "Invitation Received", "you have received an invitation")
+            create_notice_type("friends_accept", "Acceptance Received", "an invitation you sent has been accepted")
     
         signals.post_syncdb.connect(create_notice_types, sender=notification)
-    except ImproperlyConfigured:
+    else:
         print "Skipping creation of NoticeTypes as notification app not found"
 
-Notice that the code is wrapped in a try clause so if django-notification is
-not installed, your app will proceed anyway.
+Notice that the code is wrapped in a conditional claus so if
+django-notification is not installed, your app will proceed anyway.
 
 
 Notification templates
@@ -130,17 +129,17 @@ This enables you to override on a per call basis whether it should call
 Optional notification support
 -----------------------------
 
-To allow your app to still function without notification, you can wrap your
-import in a try clause and test that the module has been loaded before sending
-a notice.
+In case you want to use django-notification in your reusable app, you can
+wrap the import of django-notification in a conditional clause that tests
+if it's installed before sending a notice. As a result your app or
+project still functions without notification.
 
 For example::
 
-    from django.db.models import get_app
-    from django.core.exceptions import ImproperlyConfigured
+    from django.conf import settings
 
-    try:
-        notification = get_app('notification')
+    if "notification" in settings.INSTALLED_APPS:
+        from notification import models as notification
     except ImproperlyConfigured:
         notification = None
 

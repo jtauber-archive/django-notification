@@ -25,10 +25,9 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext, get_language, activate
 
 # favour django-mailer but fall back to django.core.mail
-try:
-    mailer = models.get_app("mailer")
+if 'mailer' in settings.INSTALLED_APPS
     from mailer import send_mail
-except ImproperlyConfigured:
+else:
     from django.core.mail import send_mail
 
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
@@ -159,9 +158,9 @@ class Notice(models.Model):
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
 
-    @models.permalink
     def get_absolute_url(self):
         return ("notification_notice", [str(self.pk)])
+    get_absolute_url = models.permalink(get_absolute_url)
 
 class NoticeQueueBatch(models.Model):
     """
