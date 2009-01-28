@@ -1,7 +1,5 @@
 from django.conf.urls.defaults import *
 
-# @@@ from atom import Feed
-
 from notification.views import notices, mark_all_seen, feed_for_user, single
 
 urlpatterns = patterns('',
