@@ -3,8 +3,8 @@ from setuptools import setup, find_packages
 setup(
     name='django-notification',
     version=__import__('notification').__version__,
-    description='Many sites need to notify users when certain events have occurred and to allow configurable options as to how those notifications are to be received. The project aims to provide a Django app for this sort of functionality.',
-    long_description=open('docs/index.txt').read(),
+    description='User notification management for the Django web framework',
+    long_description=open('docs/usage.txt').read(),
     author='James Tauber',
     author_email='jtauber@jtauber.com',
     url='http://code.google.com/p/django-notification/',
