@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 setup(
     name='django-notification',
@@ -8,12 +8,7 @@ setup(
     author='James Tauber',
     author_email='jtauber@jtauber.com',
     url='http://code.google.com/p/django-notification/',
-    packages=[
-        'notification',
-        'notification.management',
-        'notification.management.commands',
-    ],
-    package_dir={'notification': 'notification'},
+    packages=find_packages(),
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
@@ -22,5 +17,7 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Framework :: Django',
-    ]
+    ],
+    include_package_data=True,
+    zip_safe=False,
 )
