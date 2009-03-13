@@ -114,12 +114,12 @@ class NoticeManager(models.Manager):
             qs = qs.filter(on_site=on_site)
         return qs
 
-    def unseen_count_for(self, user):
+    def unseen_count_for(self, user, **kwargs):
         """
         returns the number of unseen notices for the given user but does not
         mark them seen
         """
-        return self.filter(user=user, unseen=True).count()
+        return self.notices_for(user, unseen=True, **kwargs).count()
 
 class Notice(models.Model):
 
