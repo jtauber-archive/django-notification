@@ -27,13 +27,6 @@ from django.utils.translation import ugettext, get_language, activate
 from notification import backends
 from notification.message import encode_message
 
-# favour django-mailer but fall back to django.core.mail
-try:
-    mailer = models.get_app("mailer")
-    from mailer import send_mail
-except ImproperlyConfigured:
-    from django.core.mail import send_mail
-
 QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
 
 class LanguageStoreNotAvailable(Exception):
