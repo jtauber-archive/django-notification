@@ -55,4 +55,4 @@ class EmailBackend(backends.BaseBackend):
             "message": messages["full.txt"],
         }, context)
         
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient])
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [recipient.email])
