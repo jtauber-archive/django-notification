@@ -20,8 +20,8 @@ class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
     
     def can_send(self, user, notice_type):
-        from notification.models import should_send
-        if should_send(user, notice_type, self.medium_id) and user.email:
+        can_send = super(EmailBackend, self).can_send(user, notice_type)
+        if can_send and user.email:
             return True
         return False
         
