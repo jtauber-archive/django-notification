@@ -52,10 +52,9 @@ NOTIFICATION_BACKENDS = backends.load_backends()
 
 NOTICE_MEDIA = []
 NOTICE_MEDIA_DEFAULTS = {}
-for i, items in enumerate(NOTIFICATION_BACKENDS.items()):
-    backend_label, backend = items
-    NOTICE_MEDIA.append((i, backend_label))
-    NOTICE_MEDIA_DEFAULTS[i] = backend.spam_sensitivity
+for backend_label, medium_id, backend in NOTIFICATION_BACKENDS:
+    NOTICE_MEDIA.append((medium_id, backend_label))
+    NOTICE_MEDIA_DEFAULTS[medium_id] = backend.spam_sensitivity
 
 class NoticeSetting(models.Model):
     """

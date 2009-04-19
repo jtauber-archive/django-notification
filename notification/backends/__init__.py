@@ -13,7 +13,7 @@ default_backends = (
 
 def load_backends():
     backends = []
-    for bits in getattr(settings, "NOTIFICATION_BACKENDS", default_backends):
+    for medium_id, bits in enumerate(getattr(settings, "NOTIFICATION_BACKENDS", default_backends)):
         if len(bits) == 2:
             label, backend_path = bits
             spam_sensitivity = None
@@ -31,6 +31,6 @@ def load_backends():
             raise exceptions.ImproperlyConfigured, 'Error importing notification backend %s: "%s"' % (backend_mod, e)
         # add the backend label and an instantiated backend class to the
         # backends list.
-        backend_instance = getattr(mod, backend_class)(label, spam_sensitivity)
-        backends.append((label, backend_instance))
+        backend_instance = getattr(mod, backend_class)(medium_id, spam_sensitivity)
+        backends.append((label, medium_id, backend_instance))
     return dict(backends)

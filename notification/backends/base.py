@@ -5,8 +5,8 @@ class BaseBackend(object):
     """
     The base backend.
     """
-    def __init__(self, label, spam_sensitivity=None):
-        self.label = label
+    def __init__(self, medium_id, spam_sensitivity=None):
+        self.medium_id = medium_id
         if spam_sensitivity is not None:
             self.spam_sensitivity = spam_sensitivity
     
