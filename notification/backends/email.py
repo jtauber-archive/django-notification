@@ -11,12 +11,10 @@ from notification import backends
 from notification.message import message_to_text
 
 # favour django-mailer but fall back to django.core.mail
-try:
-    mailer = get_app("mailer")
+if "mailer" in settings.INSTALLED_APPS:
     from mailer import send_mail
-except ImproperlyConfigured:
+else:
     from django.core.mail import send_mail
-
 
 class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
