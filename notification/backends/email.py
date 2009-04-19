@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.db.models.loading import get_app
 from django.core.urlresolvers import reverse
@@ -20,6 +19,7 @@ class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
     
     def can_send(self, user, notice_type):
+        from notification.models import should_send
         if should_send(user, notice_type, self.label) and user.email:
             return True
         return False
