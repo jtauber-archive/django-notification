@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db.models.loading import get_app
 from django.core.urlresolvers import reverse
+from django.template import Context
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext
 from django.contrib.sites.models import Site
