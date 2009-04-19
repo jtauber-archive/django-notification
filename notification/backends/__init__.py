@@ -32,5 +32,5 @@ def load_backends():
         # add the backend label and an instantiated backend class to the
         # backends list.
         backend_instance = getattr(mod, backend_class)(medium_id, spam_sensitivity)
-        backends.append((label, medium_id, backend_instance))
+        backends.append(((medium_id, label), backend_instance))
     return dict(backends)
