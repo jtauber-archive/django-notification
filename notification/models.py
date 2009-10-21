@@ -246,11 +246,14 @@ def send_now(users, label, extra_context=None, on_site=True):
     """
     if extra_context is None:
         extra_context = {}
-    
+
     notice_type = NoticeType.objects.get(label=label)
 
+    protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
     current_site = Site.objects.get_current()
-    notices_url = u"http://%s%s" % (
+
+    notices_url = u"%s://%s%s" % (
+        protocol,
         unicode(current_site),
         reverse("notification_notices"),
     )
