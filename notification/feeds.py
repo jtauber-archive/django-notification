@@ -42,6 +42,7 @@ class BaseNoticeFeed(Feed):
     def item_authors(self, notification):
         return [{"name" : notification.user.username}]
 
+
 class NoticeUserFeed(BaseNoticeFeed):
     def get_object(self, params):
         return get_object_or_404(User, username=params[0].lower())
