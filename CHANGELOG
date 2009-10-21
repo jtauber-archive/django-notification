@@ -1,0 +1,4 @@
+0.1.5
+-----
+
+ * added support for DEFAULT_HTTP_PROTOCOL allowing https absolute URLs
