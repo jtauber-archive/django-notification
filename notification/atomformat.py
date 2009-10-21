@@ -61,11 +61,16 @@ def rfc3339_date(date):
 ## based on django.utils.feedgenerator.get_tag_uri
 def get_tag_uri(url, date):
     "Creates a TagURI. See http://diveintomark.org/archives/2004/05/28/howto-atom-id"
-    tag = re.sub('^http://', '', url)
+    parts = urlparse.urlparse(url)
+    date_part = ""
     if date is not None:
-        tag = re.sub('/', ',%s:/' % date.strftime('%Y-%m-%d'), tag, 1)
-    tag = re.sub('#', '/', tag)
-    return 'tag:' + tag
+        date_part = ",%s:" % date.strftime("%Y-%m-%d")
+    return "tag:%s%s%s/%s" % (
+        parts.hostname,
+        date_part,
+        parts.path,
+        parts.fragment,
+    )
 
 
 
