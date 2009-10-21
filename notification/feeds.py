@@ -15,7 +15,9 @@ ITEMS_PER_FEED = getattr(settings, 'ITEMS_PER_FEED', 20)
 
 class BaseNoticeFeed(Feed):
     def item_id(self, notification):
-        return "http://%s%s" % (
+        protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
+        return "%s://%s%s" % (
+            protocol,
             Site.objects.get_current().domain,
             notification.get_absolute_url(),
         )
@@ -43,10 +45,12 @@ class NoticeUserFeed(BaseNoticeFeed):
         return get_object_or_404(User, username=params[0].lower())
 
     def feed_id(self, user):
-        return "http://%s%s" % (
-                Site.objects.get_current().domain,
-                reverse('notification_feed_for_user'),
-            )
+        protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
+        return "%s://%s%s" % (
+            protocol,
+            Site.objects.get_current().domain,
+            reverse('notification_feed_for_user'),
+        )
 
     def feed_title(self, user):
         return _('Notices Feed')
