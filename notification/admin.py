@@ -8,7 +8,7 @@ class NoticeSettingAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'notice_type', 'medium', 'send')
 
 class NoticeAdmin(admin.ModelAdmin):
-    list_display = ('message', 'user', 'notice_type', 'added', 'unseen', 'archived')
+    list_display = ('message', 'recipient', 'sender', 'notice_type', 'added', 'unseen', 'archived')
 
 
 admin.site.register(NoticeType, NoticeTypeAdmin)
