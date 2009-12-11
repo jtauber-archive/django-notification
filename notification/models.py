@@ -93,7 +93,7 @@ def should_send(user, notice_type, medium):
 
 class NoticeManager(models.Manager):
 
-    def notices_for(self, user, archived=False, unseen=None, on_site=None):
+    def notices_for(self, user, archived=False, unseen=None, on_site=None, sent=False):
         """
         returns Notice objects for the given user.
 
@@ -104,22 +104,39 @@ class NoticeManager(models.Manager):
         If unseen=True, return only unseen notices.
         If unseen=False, return only seen notices.
         """
-        if archived:
-            qs = self.filter(user=user)
+        if sent:
+            lookup_kwargs = {"sender": user}
         else:
-            qs = self.filter(user=user, archived=archived)
+            lookup_kwargs = {"recipient": user}
+        qs = self.filter(**lookup_kwargs)
+        if not archived:
+            self.filter(archived=archived)
         if unseen is not None:
             qs = qs.filter(unseen=unseen)
         if on_site is not None:
             qs = qs.filter(on_site=on_site)
         return qs
 
-    def unseen_count_for(self, user, **kwargs):
+    def unseen_count_for(self, recipient, **kwargs):
         """
         returns the number of unseen notices for the given user but does not
         mark them seen
         """
-        return self.notices_for(user, unseen=True, **kwargs).count()
+        return self.notices_for(recipient, unseen=True, **kwargs).count()
+    
+    def received(self, recipient, **kwargs):
+        """
+        returns notices the given recipient has recieved.
+        """
+        kwargs["sent"] = False
+        return self.notices_for(recipient, **kwargs)
+    
+    def sent(self, sender, **kwargs):
+        """
+        returns notices the given sender has sent
+        """
+        kwargs["sent"] = True
+        return self.notices_for(sender, **kwargs)
 
 class Notice(models.Model):
 

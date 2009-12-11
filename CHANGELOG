@@ -3,6 +3,7 @@ BI = backward incompatible change
 0.2.0
 -----
 
+ * added received and sent methods taking a User instance to Notice.objects
  * BI: added nullable Notice.sender and modified send_now and queue to take
    an optional sender
  * BI: renamed Notice.user to Notice.recipient
