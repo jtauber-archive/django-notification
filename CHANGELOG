@@ -3,11 +3,12 @@ BI = backward incompatible change
 0.2.0
 -----
 
- * added received and sent methods taking a User instance to Notice.objects
+ * BI: renamed Notice.user to Notice.recipient
+ * BI: renamed {{ user }} context variable in notification templates to
+   {{ recipient }}
  * BI: added nullable Notice.sender and modified send_now and queue to take
    an optional sender
- * BI: renamed Notice.user to Notice.recipient
- * BI: renamed {{ user }} context variable in notification templates to {{ recipient }}
+ * added received and sent methods taking a User instance to Notice.objects
 
 0.1.5
 -----
