@@ -1,3 +1,11 @@
+BI = backward incompatible change
+
+0.2.0
+-----
+
+ * BI: renamed Notice.user to Notice.recipient
+ * BI: renamed {{ user }} context variable in notification templates to {{ recipient }}
+
 0.1.5
 -----
 

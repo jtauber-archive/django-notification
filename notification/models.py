@@ -123,7 +123,7 @@ class NoticeManager(models.Manager):
 
 class Notice(models.Model):
 
-    user = models.ForeignKey(User, verbose_name=_('user'))
+    recipient = models.ForeignKey(User, verbose_name=_('recipient'))
     message = models.TextField(_('message'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
@@ -282,7 +282,7 @@ def send_now(users, label, extra_context=None, on_site=True):
 
         # update context with user specific translations
         context = Context({
-            "user": user,
+            "recipient": user,
             "notice": ugettext(notice_type.display),
             "notices_url": notices_url,
             "current_site": current_site,
@@ -301,7 +301,7 @@ def send_now(users, label, extra_context=None, on_site=True):
             'message': messages['full.txt'],
         }, context)
 
-        notice = Notice.objects.create(user=user, message=messages['notice.html'],
+        notice = Notice.objects.create(recipient=user, message=messages['notice.html'],
             notice_type=notice_type, on_site=on_site)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
