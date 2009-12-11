@@ -123,7 +123,8 @@ class NoticeManager(models.Manager):
 
 class Notice(models.Model):
 
-    recipient = models.ForeignKey(User, verbose_name=_('recipient'))
+    recipient = models.ForeignKey(User, related_name='recieved_notices', verbose_name=_('recipient'))
+    sender = models.ForeignKey(User, null=True, related_name='sent_notices', verbose_name=_('sender'))
     message = models.TextField(_('message'))
     notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
     added = models.DateTimeField(_('added'), default=datetime.datetime.now)
@@ -230,7 +231,7 @@ def get_formatted_messages(formats, label, context):
             'notification/%s' % format), context_instance=context)
     return format_templates
 
-def send_now(users, label, extra_context=None, on_site=True):
+def send_now(users, label, extra_context=None, on_site=True, sender=None):
     """
     Creates a new notice.
 
@@ -283,6 +284,7 @@ def send_now(users, label, extra_context=None, on_site=True):
         # update context with user specific translations
         context = Context({
             "recipient": user,
+            "sender": sender,
             "notice": ugettext(notice_type.display),
             "notices_url": notices_url,
             "current_site": current_site,
@@ -302,7 +304,7 @@ def send_now(users, label, extra_context=None, on_site=True):
         }, context)
 
         notice = Notice.objects.create(recipient=user, message=messages['notice.html'],
-            notice_type=notice_type, on_site=on_site)
+            notice_type=notice_type, on_site=on_site, sender=sender)
         if should_send(user, notice_type, "1") and user.email: # Email
             recipients.append(user.email)
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients)
@@ -330,7 +332,7 @@ def send(*args, **kwargs):
         else:
             return send_now(*args, **kwargs)
         
-def queue(users, label, extra_context=None, on_site=True):
+def queue(users, label, extra_context=None, on_site=True, sender=None):
     """
     Queue the notification in NoticeQueueBatch. This allows for large amounts
     of user notifications to be deferred to a seperate process running outside
@@ -344,7 +346,7 @@ def queue(users, label, extra_context=None, on_site=True):
         users = [user.pk for user in users]
     notices = []
     for user in users:
-        notices.append((user, label, extra_context, on_site))
+        notices.append((user, label, extra_context, on_site, sender))
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
 
 class ObservedItemManager(models.Manager):
