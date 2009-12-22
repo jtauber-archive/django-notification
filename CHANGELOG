@@ -9,6 +9,7 @@ BI = backward incompatible change
  * BI: added nullable Notice.sender and modified send_now and queue to take
    an optional sender
  * added received and sent methods taking a User instance to Notice.objects
+ * New default behavior: single notice view now marks unseen notices as seen
 
 0.1.5
 -----

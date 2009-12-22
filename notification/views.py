@@ -47,9 +47,12 @@ def notices(request):
     }, context_instance=RequestContext(request))
 
 @login_required
-def single(request, id):
+def single(request, id, mark_seen=True):
     notice = get_object_or_404(Notice, id=id)
     if request.user == notice.user:
+        if mark_seen and notice.unseen:
+            notice.unseen = False
+            notice.save()
         return render_to_response("notification/single.html", {
             "notice": notice,
         }, context_instance=RequestContext(request))
