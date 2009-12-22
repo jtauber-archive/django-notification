@@ -11,6 +11,9 @@ from notification.feeds import NoticeUserFeed
 
 @basic_auth_required(realm='Notices Feed', callback_func=simple_basic_auth_callback)
 def feed_for_user(request):
+    """
+    An atom feed for all unarchived :model:`notification.Notice`s for a user.
+    """
     url = "feed/%s" % request.user.username
     return feed(request, url, {
         "feed": NoticeUserFeed,
@@ -18,6 +21,28 @@ def feed_for_user(request):
 
 @login_required
 def notices(request):
+    """
+    The main notices index view.
+    
+    Template: :template:`notification/notices.html`
+    
+    Context:
+    
+        notices
+            A list of :model:`notification.Notice` objects that are not archived
+            and to be displayed on the site.
+        
+        notice_types
+            A list of all :model:`notification.NoticeType` objects.
+        
+        notice_settings
+            A dictionary containing ``column_headers`` for each ``NOTICE_MEDIA``
+            and ``rows`` containing a list of dictionaries: ``notice_type``, a
+            :model:`notification.NoticeType` object and ``cells``, a list of
+            tuples whose first value is suitable for use in forms and the second
+            value is ``True`` or ``False`` depending on a ``request.POST``
+            variable called ``form_label``, whose valid value is ``on``.
+    """
     notice_types = NoticeType.objects.all()
     notices = Notice.objects.notices_for(request.user, on_site=True)
     settings_table = []
@@ -48,6 +73,22 @@ def notices(request):
 
 @login_required
 def single(request, id, mark_seen=True):
+    """
+    Detail view for a single :model:`notification.Notice`.
+    
+    Template: :template:`notification/single.html`
+    
+    Context:
+    
+        notice
+            The :model:`notification.Notice` being viewed
+    
+    Optional arguments:
+    
+        mark_seen
+            If ``True``, mark the notice as seen if it isn't
+            already.  Do nothing if ``False``.  Default: ``True``.
+    """
     notice = get_object_or_404(Notice, id=id)
     if request.user == notice.user:
         if mark_seen and notice.unseen:
@@ -60,6 +101,19 @@ def single(request, id, mark_seen=True):
 
 @login_required
 def archive(request, noticeid=None, next_page=None):
+    """
+    Archive a :model:`notices.Notice` if the requesting user is the
+    recipient or if the user is a superuser.  Returns a
+    ``HttpResponseRedirect`` when complete.
+    
+    Optional arguments:
+    
+        noticeid
+            The ID of the :model:`notices.Notice` to be archived.
+        
+        next_page
+            The page to redirect to when done.
+    """
     if noticeid:
         try:
             notice = Notice.objects.get(id=noticeid)
@@ -74,6 +128,19 @@ def archive(request, noticeid=None, next_page=None):
 
 @login_required
 def delete(request, noticeid=None, next_page=None):
+    """
+    Delete a :model:`notices.Notice` if the requesting user is the recipient
+    or if the user is a superuser.  Returns a ``HttpResponseRedirect`` when
+    complete.
+    
+    Optional arguments:
+    
+        noticeid
+            The ID of the :model:`notices.Notice` to be archived.
+        
+        next_page
+            The page to redirect to when done.
+    """
     if noticeid:
         try:
             notice = Notice.objects.get(id=noticeid)
@@ -88,6 +155,11 @@ def delete(request, noticeid=None, next_page=None):
 
 @login_required
 def mark_all_seen(request):
+    """
+    Mark all unseen notices for the requesting user as seen.  Returns a
+    ``HttpResponseRedirect`` when complete. 
+    """
+    
     for notice in Notice.objects.notices_for(request.user, unseen=True):
         notice.unseen = False
         notice.save()
