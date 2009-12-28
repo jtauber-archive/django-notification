@@ -90,7 +90,7 @@ def single(request, id, mark_seen=True):
             already.  Do nothing if ``False``.  Default: ``True``.
     """
     notice = get_object_or_404(Notice, id=id)
-    if request.user == notice.user:
+    if request.user == notice.recipient:
         if mark_seen and notice.unseen:
             notice.unseen = False
             notice.save()
@@ -117,7 +117,7 @@ def archive(request, noticeid=None, next_page=None):
     if noticeid:
         try:
             notice = Notice.objects.get(id=noticeid)
-            if request.user == notice.user or request.user.is_superuser:
+            if request.user == notice.recipient or request.user.is_superuser:
                 notice.archive()
             else:   # you can archive other users' notices
                     # only if you are superuser.
@@ -144,7 +144,7 @@ def delete(request, noticeid=None, next_page=None):
     if noticeid:
         try:
             notice = Notice.objects.get(id=noticeid)
-            if request.user == notice.user or request.user.is_superuser:
+            if request.user == notice.recipient or request.user.is_superuser:
                 notice.delete()
             else:   # you can delete other users' notices
                     # only if you are superuser.
