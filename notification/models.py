@@ -405,10 +405,10 @@ class ObservedItem(models.Model):
         verbose_name = _('observed item')
         verbose_name_plural = _('observed items')
 
-    def send_notice(self):
-        send([self.user], self.notice_type.label,
-             {'observed': self.observed_object})
-
+    def send_notice(self, kwargs = {}):
+        values ={'observed': self.observed_object}
+        values.update(kwargs)
+        send([self.user], self.notice_type.label, values)
 
 def observe(observed, observer, notice_type_label, signal='post_save'):
     """
@@ -429,13 +429,13 @@ def stop_observing(observed, observer, signal='post_save'):
     observed_item = ObservedItem.objects.get_for(observed, observer, signal)
     observed_item.delete()
 
-def send_observation_notices_for(observed, signal='post_save'):
+def send_observation_notices_for(observed, signal='post_save', kwargs = {}):
     """
     Send a notice for each registered user about an observed object.
     """
     observed_items = ObservedItem.objects.all_for(observed, signal)
     for observed_item in observed_items:
-        observed_item.send_notice()
+        observed_item.send_notice(kwargs)
     return observed_items
 
 def is_observing(observed, observer, signal='post_save'):
