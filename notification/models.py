@@ -322,7 +322,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
 
         notice = Notice.objects.create(recipient=user, message=messages['notice.html'],
             notice_type=notice_type, on_site=on_site, sender=sender)
-        if should_send(user, notice_type, "1") and user.email: # Email
+        if should_send(user, notice_type, "1") and user.email and user.is_active: # Email
             recipients.append(user.email)
         send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, recipients)
 
