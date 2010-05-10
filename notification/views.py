@@ -31,6 +31,21 @@ def notices(request):
         notices
             A list of :model:`notification.Notice` objects that are not archived
             and to be displayed on the site.
+    """
+    notices = Notice.objects.notices_for(request.user, on_site=True)
+    
+    return render_to_response("notification/notices.html", {
+        "notices": notices,
+    }, context_instance=RequestContext(request))
+    
+@login_required
+def notice_settings(request):
+    """
+    The notice settings view.
+    
+    Template: :template:`notification/notice_settings.html`
+    
+    Context:
         
         notice_types
             A list of all :model:`notification.NoticeType` objects.
@@ -44,19 +59,21 @@ def notices(request):
             variable called ``form_label``, whose valid value is ``on``.
     """
     notice_types = NoticeType.objects.all()
-    notices = Notice.objects.notices_for(request.user, on_site=True)
     settings_table = []
-    for notice_type in NoticeType.objects.all():
+    for notice_type in notice_types:
         settings_row = []
         for medium_id, medium_display in NOTICE_MEDIA:
             form_label = "%s_%s" % (notice_type.label, medium_id)
             setting = get_notification_setting(request.user, notice_type, medium_id)
             if request.method == "POST":
                 if request.POST.get(form_label) == "on":
-                    setting.send = True
+                    if not setting.send:
+                        setting.send = True
+                        setting.save()
                 else:
-                    setting.send = False
-                setting.save()
+                    if setting.send:
+                        setting.send = False
+                        setting.save()
             settings_row.append((form_label, setting.send))
         settings_table.append({"notice_type": notice_type, "cells": settings_row})
     
@@ -65,8 +82,7 @@ def notices(request):
         "rows": settings_table,
     }
     
-    return render_to_response("notification/notices.html", {
-        "notices": notices,
+    return render_to_response("notification/notice_settings.html", {
         "notice_types": notice_types,
         "notice_settings": notice_settings,
     }, context_instance=RequestContext(request))
