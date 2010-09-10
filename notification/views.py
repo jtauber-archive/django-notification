@@ -37,7 +37,7 @@ def notices(request):
     return render_to_response("notification/notices.html", {
         "notices": notices,
     }, context_instance=RequestContext(request))
-    
+
 @login_required
 def notice_settings(request):
     """
