@@ -9,6 +9,7 @@ from notification.models import *
 from notification.decorators import basic_auth_required, simple_basic_auth_callback
 from notification.feeds import NoticeUserFeed
 
+
 @basic_auth_required(realm='Notices Feed', callback_func=simple_basic_auth_callback)
 def feed_for_user(request):
     """
@@ -18,6 +19,7 @@ def feed_for_user(request):
     return feed(request, url, {
         "feed": NoticeUserFeed,
     })
+
 
 @login_required
 def notices(request):
@@ -37,6 +39,7 @@ def notices(request):
     return render_to_response("notification/notices.html", {
         "notices": notices,
     }, context_instance=RequestContext(request))
+
 
 @login_required
 def notice_settings(request):
@@ -87,6 +90,7 @@ def notice_settings(request):
         "notice_settings": notice_settings,
     }, context_instance=RequestContext(request))
 
+
 @login_required
 def single(request, id, mark_seen=True):
     """
@@ -115,6 +119,7 @@ def single(request, id, mark_seen=True):
         }, context_instance=RequestContext(request))
     raise Http404
 
+
 @login_required
 def archive(request, noticeid=None, next_page=None):
     """
@@ -141,6 +146,7 @@ def archive(request, noticeid=None, next_page=None):
         except Notice.DoesNotExist:
             return HttpResponseRedirect(next_page)
     return HttpResponseRedirect(next_page)
+
 
 @login_required
 def delete(request, noticeid=None, next_page=None):
@@ -169,6 +175,7 @@ def delete(request, noticeid=None, next_page=None):
             return HttpResponseRedirect(next_page)
     return HttpResponseRedirect(next_page)
 
+
 @login_required
 def mark_all_seen(request):
     """
@@ -180,4 +187,3 @@ def mark_all_seen(request):
         notice.unseen = False
         notice.save()
     return HttpResponseRedirect(reverse("notification_notices"))
-    
