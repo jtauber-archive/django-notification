@@ -76,7 +76,11 @@ def notice_settings(request):
                         setting.save()
             settings_row.append((form_label, setting.send))
         settings_table.append({"notice_type": notice_type, "cells": settings_row})
-    
+
+    if request.method == "POST":
+        next_page = request.POST.get("next_page", ".")
+        return HttpResponseRedirect(next_page)
+
     notice_settings = {
         "column_headers": [medium_display for medium_id, medium_display in NOTICE_MEDIA],
         "rows": settings_table,
