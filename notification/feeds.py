@@ -40,7 +40,7 @@ class BaseNoticeFeed(Feed):
         return [{"href" : self.item_id(notification)}]
     
     def item_authors(self, notification):
-        return [{"name" : notification.user.username}]
+        return [{"name" : notification.recipient.username}]
 
 
 class NoticeUserFeed(BaseNoticeFeed):
@@ -58,7 +58,7 @@ class NoticeUserFeed(BaseNoticeFeed):
         return _('Notices Feed')
 
     def feed_updated(self, user):
-        qs = Notice.objects.filter(user=user)
+        qs = Notice.objects.filter(recipient=user)
         # We return an arbitrary date if there are no results, because there
         # must be a feed_updated field as per the Atom specifications, however
         # there is no real data to go by, and an arbitrary date can be static.
