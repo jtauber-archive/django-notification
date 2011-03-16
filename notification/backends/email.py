@@ -1,20 +1,17 @@
 from django.conf import settings
-from django.db.models.loading import get_app
+from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
+from django.db.models.loading import get_app
 from django.template import Context
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext
-from django.contrib.sites.models import Site
 from django.core.exceptions import ImproperlyConfigured
+
+from django.contrib.sites.models import Site
 
 from notification import backends
 from notification.message import message_to_text
 
-# favour django-mailer but fall back to django.core.mail
-if "mailer" in settings.INSTALLED_APPS:
-    from mailer import send_mail
-else:
-    from django.core.mail import send_mail
 
 class EmailBackend(backends.BaseBackend):
     spam_sensitivity = 2
@@ -25,7 +22,7 @@ class EmailBackend(backends.BaseBackend):
             return True
         return False
         
-    def deliver(self, recipient, notice_type, extra_context):
+    def deliver(self, recipient, sender, notice_type, extra_context):
         # TODO: require this to be passed in extra_context
         current_site = Site.objects.get_current()
         notices_url = u"http://%s%s" % (
@@ -35,7 +32,8 @@ class EmailBackend(backends.BaseBackend):
         
         # update context with user specific translations
         context = Context({
-            "user": recipient,
+            "recipient": recipient,
+            "sender": sender,
             "notice": ugettext(notice_type.display),
             "notices_url": notices_url,
             "current_site": current_site,

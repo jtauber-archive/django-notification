@@ -1,7 +1,5 @@
-
 from django.db.models import get_model
 from django.utils.translation import ugettext
-
 
 # a notice like "foo and bar are now friends" is stored in the database
 # as "{auth.User.5} and {auth.User.7} are now friends".
@@ -35,7 +33,7 @@ def encode_message(message_template, objects):
         return message_template % tuple(encode_object(obj) for obj in objects)
     if type(objects) is dict:
         return message_template % dict((name, encode_object(obj, name)) for name, obj in objects.iteritems())
-    return ''
+    return ""
 
 
 def decode_object(ref):
@@ -59,17 +57,17 @@ def decode_message(message, decoder):
     prev = 0
     for index, ch in enumerate(message):
         if not in_field:
-            if ch == '{':
+            if ch == "{":
                 in_field = True
                 if prev != index:
                     out.append(message[prev:index])
                 prev = index
-            elif ch == '}':
+            elif ch == "}":
                 raise FormatException("unmatched }")
         elif in_field:
-            if ch == '{':
+            if ch == "{":
                 raise FormatException("{ inside {}")
-            elif ch == '}':
+            elif ch == "}":
                 in_field = False
                 obj, msgid = decoder(message[prev+1:index])
                 if msgid is None:

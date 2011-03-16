@@ -1,0 +1,22 @@
+BI = backward incompatible change
+
+0.2.0
+-----
+
+ * BI: renamed Notice.user to Notice.recipient
+ * BI: renamed {{ user }} context variable in notification templates to
+   {{ recipient }}
+ * BI: added nullable Notice.sender and modified send_now and queue to take
+   an optional sender
+ * added received and sent methods taking a User instance to Notice.objects
+ * New default behavior: single notice view now marks unseen notices as seen
+ * no longer optionally depend on mailer; use django.core.mail.send_mail and
+   we now encourge use of Django 1.2+ for mailer support
+ * notifications are not sent to inactive users
+ * users which do not exist when sending notification are now ignored
+ * BI: split settings part of notices view to its own view notice_settings
+
+0.1.5
+-----
+
+ * added support for DEFAULT_HTTP_PROTOCOL allowing https absolute URLs
