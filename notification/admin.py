@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from notification.models import NoticeType, NoticeSetting, ObservedItem, NoticeQueueBatch
+from notification.models import NoticeType, NoticeSetting, NoticeQueueBatch
 
 
 class NoticeTypeAdmin(admin.ModelAdmin):
@@ -14,4 +14,3 @@ class NoticeSettingAdmin(admin.ModelAdmin):
 admin.site.register(NoticeQueueBatch)
 admin.site.register(NoticeType, NoticeTypeAdmin)
 admin.site.register(NoticeSetting, NoticeSettingAdmin)
-admin.site.register(ObservedItem)
