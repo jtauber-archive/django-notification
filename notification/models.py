@@ -146,13 +146,6 @@ def send_now(users, label, extra_context=None, sender=None):
     
     current_language = get_language()
     
-    formats = (
-        "short.txt",
-        "full.txt",
-        "notice.html",
-        "full.html",
-    ) # TODO make formats configurable
-    
     for user in users:
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
