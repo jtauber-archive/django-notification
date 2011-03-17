@@ -86,7 +86,7 @@ simple way to send out a notification, for example::
 One thing to note is that ``send`` is a proxy around either ``send_now`` or
 ``queue``. They all have the same signature::
 
-    send(users, label, extra_context, on_site)
+    send(users, label, extra_context)
 
 The parameters are:
 
@@ -95,8 +95,6 @@ The parameters are:
    type.
  * ``extra_content`` is a dictionary to add custom context entries to the
    template used to render to notification. This is optional.
- * ``on_site`` is a boolean flag to determine whether an ``Notice`` object is
-   created in the database.
 
 ``send_now`` vs. ``queue`` vs. ``send``
 ---------------------------------------

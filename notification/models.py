@@ -128,7 +128,7 @@ def get_notification_language(user):
     raise LanguageStoreNotAvailable
 
 
-def send_now(users, label, extra_context=None, on_site=True, sender=None):
+def send_now(users, label, extra_context=None, sender=None):
     """
     Creates a new notice.
     
@@ -138,9 +138,6 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
         "spam": "eggs",
         "foo": "bar",
     )
-    
-    You can pass in on_site=False to prevent the notice emitted from being
-    displayed on the site.
     """
     if extra_context is None:
         extra_context = {}
@@ -197,7 +194,7 @@ def send(*args, **kwargs):
             return send_now(*args, **kwargs)
 
 
-def queue(users, label, extra_context=None, on_site=True, sender=None):
+def queue(users, label, extra_context=None, sender=None):
     """
     Queue the notification in NoticeQueueBatch. This allows for large amounts
     of user notifications to be deferred to a seperate process running outside
@@ -212,5 +209,5 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
         users = [user.pk for user in users]
     notices = []
     for user in users:
-        notices.append((user, label, extra_context, on_site, sender))
+        notices.append((user, label, extra_context, sender))
     NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode("base64")).save()
