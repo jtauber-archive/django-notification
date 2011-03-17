@@ -44,6 +44,34 @@ class NoticeType(models.Model):
     class Meta:
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
+    
+    @classmethod
+    def create(cls, label, display, description, default=2, verbosity=1):
+        """
+        Creates a new NoticeType.
+        
+        This is intended to be used by other apps as a post_syncdb manangement step.
+        """
+        try:
+            notice_type = cls._default_manager.get(label=label)
+            updated = False
+            if display != notice_type.display:
+                notice_type.display = display
+                updated = True
+            if description != notice_type.description:
+                notice_type.description = description
+                updated = True
+            if default != notice_type.default:
+                notice_type.default = default
+                updated = True
+            if updated:
+                notice_type.save()
+                if verbosity > 1:
+                    print "Updated %s NoticeType" % label
+        except cls.DoesNotExist:
+            cls(label=label, display=display, description=description, default=default).save()
+            if verbosity > 1:
+                print "Created %s NoticeType" % label
 
 
 NOTIFICATION_BACKENDS = backends.load_backends()
@@ -71,68 +99,16 @@ class NoticeSetting(models.Model):
         verbose_name = _("notice setting")
         verbose_name_plural = _("notice settings")
         unique_together = ("user", "notice_type", "medium")
-
-
-def get_notification_setting(user, notice_type, medium):
-    try:
-        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium)
-    except NoticeSetting.DoesNotExist:
-        default = (NOTICE_MEDIA_DEFAULTS[medium] <= notice_type.default)
-        setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
-        setting.save()
-        return setting
-
-
-def should_send(user, notice_type, medium):
-    return get_notification_setting(user, notice_type, medium).send
-
-
-class NoticeManager(models.Manager):
     
-    def notices_for(self, user, archived=False, unseen=None, on_site=None, sent=False):
-        """
-        returns Notice objects for the given user.
-        
-        If archived=False, it only include notices not archived.
-        If archived=True, it returns all notices for that user.
-        
-        If unseen=None, it includes all notices.
-        If unseen=True, return only unseen notices.
-        If unseen=False, return only seen notices.
-        """
-        if sent:
-            lookup_kwargs = {"sender": user}
-        else:
-            lookup_kwargs = {"recipient": user}
-        qs = self.filter(**lookup_kwargs)
-        if not archived:
-            self.filter(archived=archived)
-        if unseen is not None:
-            qs = qs.filter(unseen=unseen)
-        if on_site is not None:
-            qs = qs.filter(on_site=on_site)
-        return qs
-    
-    def unseen_count_for(self, recipient, **kwargs):
-        """
-        returns the number of unseen notices for the given user but does not
-        mark them seen
-        """
-        return self.notices_for(recipient, unseen=True, **kwargs).count()
-    
-    def received(self, recipient, **kwargs):
-        """
-        returns notices the given recipient has recieved.
-        """
-        kwargs["sent"] = False
-        return self.notices_for(recipient, **kwargs)
-    
-    def sent(self, sender, **kwargs):
-        """
-        returns notices the given sender has sent
-        """
-        kwargs["sent"] = True
-        return self.notices_for(sender, **kwargs)
+    @classmethod
+    def for_user(cls, user, notice_type, medium):
+        try:
+            return cls._default_manager.get(user=user, notice_type=notice_type, medium=medium)
+        except cls.DoesNotExist:
+            default = (NOTICE_MEDIA_DEFAULTS[medium] <= notice_type.default)
+            setting = cls(user=user, notice_type=notice_type, medium=medium, send=default)
+            setting.save()
+            return setting
 
 
 class NoticeQueueBatch(models.Model):
@@ -141,34 +117,6 @@ class NoticeQueueBatch(models.Model):
     Denormalized data for a notice.
     """
     pickled_data = models.TextField()
-
-
-def create_notice_type(label, display, description, default=2, verbosity=1):
-    """
-    Creates a new NoticeType.
-    
-    This is intended to be used by other apps as a post_syncdb manangement step.
-    """
-    try:
-        notice_type = NoticeType.objects.get(label=label)
-        updated = False
-        if display != notice_type.display:
-            notice_type.display = display
-            updated = True
-        if description != notice_type.description:
-            notice_type.description = description
-            updated = True
-        if default != notice_type.default:
-            notice_type.default = default
-            updated = True
-        if updated:
-            notice_type.save()
-            if verbosity > 1:
-                print "Updated %s NoticeType" % label
-    except NoticeType.DoesNotExist:
-        NoticeType(label=label, display=display, description=description, default=default).save()
-        if verbosity > 1:
-            print "Created %s NoticeType" % label
 
 
 def get_notification_language(user):
