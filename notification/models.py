@@ -9,14 +9,10 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
-from django.template import Context
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext, get_language, activate
 
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.contenttypes.models import ContentType
@@ -139,48 +135,6 @@ class NoticeManager(models.Manager):
         return self.notices_for(sender, **kwargs)
 
 
-class Notice(models.Model):
-    
-    recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
-    sender = models.ForeignKey(User, null=True, related_name="sent_notices", verbose_name=_("sender"))
-    message = models.TextField(_("message"))
-    notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
-    added = models.DateTimeField(_("added"), default=datetime.datetime.now)
-    unseen = models.BooleanField(_("unseen"), default=True)
-    archived = models.BooleanField(_("archived"), default=False)
-    on_site = models.BooleanField(_("on site"))
-    
-    objects = NoticeManager()
-    
-    def __unicode__(self):
-        return self.message
-    
-    def archive(self):
-        self.archived = True
-        self.save()
-    
-    def is_unseen(self):
-        """
-        returns value of self.unseen but also changes it to false.
-        
-        Use this in a template to mark an unseen notice differently the first
-        time it is shown.
-        """
-        unseen = self.unseen
-        if unseen:
-            self.unseen = False
-            self.save()
-        return unseen
-    
-    class Meta:
-        ordering = ["-added"]
-        verbose_name = _("notice")
-        verbose_name_plural = _("notices")
-    
-    def get_absolute_url(self):
-        return reverse("notification_notice", args=[str(self.pk)])
-
-
 class NoticeQueueBatch(models.Model):
     """
     A queued notice.
@@ -235,24 +189,6 @@ def get_notification_language(user):
     raise LanguageStoreNotAvailable
 
 
-def get_formatted_messages(formats, label, context):
-    """
-    Returns a dictionary with the format identifier as the key. The values are
-    are fully rendered templates with the given context.
-    """
-    format_templates = {}
-    for format in formats:
-        # conditionally turn off autoescaping for .txt extensions in format
-        if format.endswith(".txt"):
-            context.autoescape = False
-        else:
-            context.autoescape = True
-        format_templates[format] = render_to_string((
-            "notification/%s/%s" % (label, format),
-            "notification/%s" % format), context_instance=context)
-    return format_templates
-
-
 def send_now(users, label, extra_context=None, on_site=True, sender=None):
     """
     Creates a new notice.
@@ -272,15 +208,6 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     
     notice_type = NoticeType.objects.get(label=label)
     
-    protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
-    current_site = Site.objects.get_current()
-    
-    notices_url = u"%s://%s%s" % (
-        protocol,
-        unicode(current_site),
-        reverse("notification_notices"),
-    )
-    
     current_language = get_language()
     
     formats = (
@@ -291,7 +218,6 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None):
     ) # TODO make formats configurable
     
     for user in users:
-        recipients = []
         # get user language for user from language store defined in
         # NOTIFICATION_LANGUAGE_MODULE setting
         try:

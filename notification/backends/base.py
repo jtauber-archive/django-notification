@@ -1,5 +1,9 @@
-
+from django.conf import settings
+from django.template import Context
 from django.template.loader import render_to_string
+
+from django.contrib.sites.models import Site
+
 
 class BaseBackend(object):
     """
@@ -40,3 +44,9 @@ class BaseBackend(object):
                 "notification/%s/%s" % (label, format),
                 "notification/%s" % format), context_instance=context)
         return format_templates
+    
+    def default_context(self):
+        return Context({
+            "default_http_protocol": getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http"),
+            "current_site": Site.objects.get_current(),
+        })

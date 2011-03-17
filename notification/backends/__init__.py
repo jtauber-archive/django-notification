@@ -1,4 +1,3 @@
-
 import sys
 
 from django.conf import settings
@@ -6,10 +5,12 @@ from django.core import exceptions
 
 from base import BaseBackend
 
+
 # mostly for backend compatibility
-default_backends = (
+default_backends = [
     ("email", "notification.backends.email.EmailBackend"),
-)
+]
+
 
 def load_backends():
     backends = []
