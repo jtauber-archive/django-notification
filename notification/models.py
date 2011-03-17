@@ -16,9 +16,6 @@ from notification import backends
 from notification.message import encode_message
 
 
-QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
-
-
 class LanguageStoreNotAvailable(Exception):
     pass
 
@@ -206,6 +203,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None):
     of user notifications to be deferred to a seperate process running outside
     the webserver.
     """
+    QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
     if extra_context is None:
         extra_context = {}
     if isinstance(users, QuerySet):
