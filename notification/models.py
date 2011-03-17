@@ -1,5 +1,3 @@
-import datetime
-
 try:
     import cPickle as pickle
 except ImportError:
@@ -9,14 +7,10 @@ from django.db import models
 from django.db.models.query import QuerySet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext, get_language, activate
+from django.utils.translation import get_language, activate
 
 from django.contrib.auth.models import User
-from django.contrib.auth.models import AnonymousUser
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
 
 from notification import backends
 from notification.message import encode_message
