@@ -16,6 +16,9 @@ from notification import backends
 from notification.message import encode_message
 
 
+DEFAULT_QUEUE_ALL = False
+
+
 class LanguageStoreNotAvailable(Exception):
     pass
 
@@ -173,6 +176,7 @@ def send(*args, **kwargs):
     be queued or not. A per call ``queue`` or ``now`` keyword argument can be
     used to always override the default global behavior.
     """
+    QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", DEFAULT_QUEUE_ALL)
     queue_flag = kwargs.pop("queue", False)
     now_flag = kwargs.pop("now", False)
     assert not (queue_flag and now_flag), "'queue' and 'now' cannot both be True."
@@ -193,7 +197,7 @@ def queue(users, label, extra_context=None, sender=None):
     of user notifications to be deferred to a seperate process running outside
     the webserver.
     """
-    QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", False)
+    QUEUE_ALL = getattr(settings, "NOTIFICATION_QUEUE_ALL", DEFAULT_QUEUE_ALL)
     if extra_context is None:
         extra_context = {}
     if isinstance(users, QuerySet):
