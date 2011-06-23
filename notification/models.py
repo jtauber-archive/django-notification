@@ -105,6 +105,16 @@ class NoticeSetting(models.Model):
             return setting
 
 
+def get_notification_setting(user, notice_type, medium):
+    try:
+        return NoticeSetting.objects.get(user=user, notice_type=notice_type, medium=medium)
+    except NoticeSetting.DoesNotExist:
+        default = (NOTICE_MEDIA_DEFAULTS[medium] <= notice_type.default)
+        setting = NoticeSetting(user=user, notice_type=notice_type, medium=medium, send=default)
+        setting.save()
+        return setting
+
+
 class NoticeQueueBatch(models.Model):
     """
     A queued notice.
