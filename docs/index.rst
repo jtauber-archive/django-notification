@@ -23,6 +23,7 @@ Contents:
    :maxdepth: 2
    
    usage
+   settings
 
 Indices and tables
 ==================
