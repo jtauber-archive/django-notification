@@ -44,7 +44,11 @@ class BaseBackend(object):
         return format_templates
     
     def default_context(self):
+        default_http_protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http")
+        current_site = Site.objects.get_current()
+        base_url = "%s://%s" % (default_http_protocol, current_site.domain)
         return Context({
-            "default_http_protocol": getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http"),
-            "current_site": Site.objects.get_current(),
+            "default_http_protocol": default_http_protocol,
+            "current_site": current_site,
+            "base_url": base_url
         })
