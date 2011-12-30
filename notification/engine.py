@@ -62,7 +62,12 @@ def send_all(*args):
                     sent += 1
                 queued_batch.delete()
                 batches += 1
-                emitted_notices.send(sender=NoticeQueueBatch, batches=batches, sent=sent)
+            emitted_notices.send(
+                sender=NoticeQueueBatch,
+                batches=batches,
+                sent=sent,
+                run_time="%.2f seconds" % (time.time() - start_time)
+            )
         except:
             # get the exception
             exc_class, e, t = sys.exc_info()
