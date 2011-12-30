@@ -152,6 +152,7 @@ def send_now(users, label, extra_context=None, sender=None):
         "foo": "bar",
     )
     """
+    sent = False
     if extra_context is None:
         extra_context = {}
     
@@ -174,9 +175,11 @@ def send_now(users, label, extra_context=None, sender=None):
         for backend in NOTIFICATION_BACKENDS.values():
             if backend.can_send(user, notice_type):
                 backend.deliver(user, sender, notice_type, extra_context)
+                sent = True
     
     # reset environment to original language
     activate(current_language)
+    return sent
 
 
 def send(*args, **kwargs):

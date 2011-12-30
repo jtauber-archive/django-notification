@@ -41,7 +41,7 @@ def send_all(*args):
         return
     logging.debug("acquired.")
     
-    batches, sent = 0, 0
+    batches, sent, sent_actual = 0, 0, 0
     start_time = time.time()
     
     try:
@@ -55,7 +55,8 @@ def send_all(*args):
                         logging.info("emitting notice %s to %s" % (label, user))
                         # call this once per user to be atomic and allow for logging to
                         # accurately show how long each takes.
-                        notification.send_now([user], label, extra_context, sender)
+                        if notification.send_now([user], label, extra_context, sender):
+                            sent_actual += 1
                     except User.DoesNotExist:
                         # Ignore deleted users, just warn about them
                         logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
@@ -66,6 +67,7 @@ def send_all(*args):
                 sender=NoticeQueueBatch,
                 batches=batches,
                 sent=sent,
+                sent_actual=sent_actual,
                 run_time="%.2f seconds" % (time.time() - start_time)
             )
         except:
