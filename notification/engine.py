@@ -24,8 +24,11 @@ from notification import models as notification
 LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
 
 
-def send_all():
-    lock = FileLock("send_notices")
+def send_all(*args):
+    if len(args) == 1:
+        lock = FileLock(args[0])
+    else:
+        lock = FileLock("send_notices")
     
     logging.debug("acquiring lock...")
     try:
