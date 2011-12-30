@@ -16,6 +16,7 @@ from django.contrib.sites.models import Site
 from lockfile import FileLock, AlreadyLocked, LockTimeout
 
 from notification.models import NoticeQueueBatch
+from notification.signals import emitted_notices
 from notification import models as notification
 
 # lock timeout value. how long to wait for the lock to become available.
@@ -58,6 +59,7 @@ def send_all():
                     sent += 1
                 queued_batch.delete()
                 batches += 1
+                emitted_notices.send(sender=NoticeQueueBatch, batches=batches, sent=sent)
         except:
             # get the exception
             exc_class, e, t = sys.exc_info()
