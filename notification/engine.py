@@ -1,4 +1,3 @@
-
 import sys
 import time
 import logging
@@ -23,9 +22,10 @@ from notification import models as notification
 # default behavior is to never wait for the lock to be available.
 LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
 
+
 def send_all():
     lock = FileLock("send_notices")
-
+    
     logging.debug("acquiring lock...")
     try:
         lock.acquire(LOCK_WAIT_TIMEOUT)
@@ -36,10 +36,10 @@ def send_all():
         logging.debug("waiting for the lock timed out. quitting.")
         return
     logging.debug("acquired.")
-
+    
     batches, sent = 0, 0
     start_time = time.time()
-
+    
     try:
         # nesting the try statement to be Python 2.4
         try:

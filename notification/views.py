@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response, get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.template import RequestContext
+
 from django.contrib.auth.decorators import login_required
 from django.contrib.syndication.views import feed
 
@@ -10,7 +11,7 @@ from notification.decorators import basic_auth_required, simple_basic_auth_callb
 from notification.feeds import NoticeUserFeed
 
 
-@basic_auth_required(realm='Notices Feed', callback_func=simple_basic_auth_callback)
+@basic_auth_required(realm="Notices Feed", callback_func=simple_basic_auth_callback)
 def feed_for_user(request):
     """
     An atom feed for all unarchived :model:`notification.Notice`s for a user.
@@ -79,6 +80,10 @@ def notice_settings(request):
                         setting.save()
             settings_row.append((form_label, setting.send))
         settings_table.append({"notice_type": notice_type, "cells": settings_row})
+    
+    if request.method == "POST":
+        next_page = request.POST.get("next_page", ".")
+        return HttpResponseRedirect(next_page)
     
     notice_settings = {
         "column_headers": [medium_display for medium_id, medium_display in NOTICE_MEDIA],
